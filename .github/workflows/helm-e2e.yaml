@@ -26,18 +26,17 @@ jobs:
         with:
           version: v3.14.4
 
-      - name: Install Minikube
-        uses: medyagh/setup-minikube@v0.0.19
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.9.0
         with:
-          minikube-version: v1.33.1
-          driver: docker
+          cluster_name: openops-e2e
+          wait: 180s
 
-      - name: Start Minikube cluster
+      - name: Verify cluster
         run: |
           set -euo pipefail
-          minikube start --driver=docker --kubernetes-version=v1.29.4 --memory=8192 --cpus=4
-          kubectl config use-context minikube
           kubectl cluster-info
+          kubectl get nodes -o wide
 
       - name: Deploy chart
         run: |
