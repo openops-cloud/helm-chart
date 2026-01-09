@@ -44,6 +44,7 @@ jobs:
           helm upgrade --install "$RELEASE_NAME" chart \
             --namespace "$NAMESPACE" \
             --create-namespace \
+            -f chart/values.ci.yaml \
             --set nginx.service.type=ClusterIP \
             --wait \
             --timeout 20m

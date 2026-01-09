@@ -28,10 +28,7 @@ spec:
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.engine.env) | nindent 12 }}
           ports:
             - containerPort: 3005
+{{- with .Values.engine.resources }}
           resources:
-            requests:
-              memory: "512Mi"
-              cpu: "250m"
-            limits:
-              memory: "1Gi"
-              cpu: "500m"
+{{ toYaml . | indent 12 }}
+{{- end }}
