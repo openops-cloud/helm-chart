@@ -6,6 +6,7 @@ on:
       - 'chart/**'
       - '.github/workflows/**'
   push:
+    branches: [main]
     paths:
       - 'chart/**'
       - '.github/workflows/**'
