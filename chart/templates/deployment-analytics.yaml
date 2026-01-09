@@ -13,6 +13,10 @@ spec:
     metadata:
       labels:
         app: {{ .Values.analytics.name }}
+{{ with include "openops.secretChecksum" . }}
+      annotations:
+        checksum/secret-env: {{ . }}
+{{- end }}
     spec:
       containers:
       - name: {{ .Values.analytics.name }}

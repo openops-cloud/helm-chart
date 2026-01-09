@@ -71,6 +71,15 @@ openopsEnv:
   OPS_SLACK_APP_SIGNING_SECRET: ""
   OPS_SLACK_ENABLE_INTERACTIONS: "true"
 
+secretEnv:
+  create: true
+  existingSecret: ""
+  type: Opaque
+  immutable: false
+  labels: {}
+  annotations: {}
+  stringData: {}
+  data: {}
 
 app:
   name: openops-app

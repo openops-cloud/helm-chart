@@ -97,7 +97,13 @@ Service URLs
 Secret name used to store sensitive environment variables.
 */}}
 {{- define "openops.secretName" -}}
+{{- $secretConfig := default (dict) .Values.secretEnv -}}
+{{- $existing := default "" $secretConfig.existingSecret -}}
+{{- if $existing -}}
+{{- $existing -}}
+{{- else -}}
 {{- printf "%s-env" (include "openops.fullname" .) -}}
+{{- end -}}
 {{- end }}
 
 {{/*
@@ -143,5 +149,15 @@ Expected dict: { "root": $, "env": dict }
 {{- range $k, $v := $env }}
 {{ include "openops.envVar" (dict "root" $root "key" $k "value" $v) }}
 {{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Checksum of the rendered secret manifest to trigger pod rollouts when sensitive data changes.
+*/}}
+{{- define "openops.secretChecksum" -}}
+{{- $secretManifest := include (print $.Template.BasePath "/secret-env.yaml") . -}}
+{{- if $secretManifest }}
+{{- printf "%s" $secretManifest | sha256sum -}}
 {{- end }}
 {{- end }}

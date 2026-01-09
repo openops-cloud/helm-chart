@@ -11,3 +11,9 @@ openopsEnv:
   OPS_POSTGRES_PASSWORD: WZKUM0tSvFC6VWai
   OPS_ANALYTICS_ADMIN_PASSWORD: 7YO7YEVRaECPQimI
   ANALYTICS_POWERUSER_PASSWORD: v5vIvwhdBDWwx4el
+
+secretEnv:
+  create: false
+  existingSecret: openops-env
+  annotations:
+    secrets.kubernetes.io/managed-by: external
