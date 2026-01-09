@@ -1,0 +1,83 @@
+name: Helm Chart End-to-End Test
+
+on:
+  pull_request:
+    paths:
+      - 'chart/**'
+      - '.github/workflows/**'
+  push:
+    paths:
+      - 'chart/**'
+      - '.github/workflows/**'
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      RELEASE_NAME: openops
+      NAMESPACE: openops
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.9.0
+        with:
+          cluster_name: openops-e2e
+          wait: 180s
+
+      - name: Verify cluster
+        run: |
+          set -euo pipefail
+          kubectl cluster-info
+          kubectl get nodes -o wide
+
+      - name: Deploy chart
+        run: |
+          set -euo pipefail
+          helm upgrade --install "$RELEASE_NAME" chart \
+            --namespace "$NAMESPACE" \
+            --create-namespace \
+            -f chart/values.ci.yaml \
+            --set nginx.service.type=ClusterIP \
+            --wait \
+            --timeout 20m
+
+      - name: Wait for workloads
+        run: |
+          set -euo pipefail
+          kubectl get pods -n "$NAMESPACE" -o wide
+          kubectl wait --for=condition=Available deployment --all -n "$NAMESPACE" --timeout=900s
+
+      - name: Verify application health endpoint
+        run: |
+          set -euo pipefail
+          kubectl get svc -n "$NAMESPACE"
+          kubectl port-forward -n "$NAMESPACE" svc/openops-app 18080:80 >/tmp/port-forward.log 2>&1 &
+          pf_pid=$!
+          cleanup() {
+            kill "$pf_pid" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          for attempt in $(seq 1 12); do
+            if curl -fsS http://127.0.0.1:18080/api/v1/health; then
+              echo "Health endpoint responded on attempt $attempt"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Health endpoint did not become ready" >&2
+          exit 1
+
+      - name: Gather diagnostics on failure
+        if: ${{ failure() }}
+        run: |
+          kubectl get all -n "$NAMESPACE"
+          kubectl describe pods -n "$NAMESPACE" || true
+          kubectl logs -n "$NAMESPACE" deployment/openops-app --tail=200 || true

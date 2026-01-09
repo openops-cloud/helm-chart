@@ -26,13 +26,10 @@ spec:
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnv) | nindent 12 }}
           ports:
             - containerPort: 80
+{{- with .Values.app.resources }}
           resources:
-            requests:
-              memory: "1Gi"
-              cpu: "500m"
-            limits:
-              memory: "2Gi"
-              cpu: "1000m"
+{{ toYaml . | indent 12 }}
+{{- end }}
           readinessProbe:
             httpGet:
               path: /api/v1/health

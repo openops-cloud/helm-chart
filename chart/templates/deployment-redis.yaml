@@ -20,13 +20,10 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - containerPort: 6379
+{{- with .Values.redis.resources }}
         resources:
-          requests:
-            memory: "256Mi"
-            cpu: "100m"
-          limits:
-            memory: "512Mi"
-            cpu: "200m"
+{{ toYaml . | indent 8 }}
+{{- end }}
         volumeMounts:
         - name: redis-data
           mountPath: /data

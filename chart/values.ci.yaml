@@ -1,0 +1,60 @@
+# Resource overrides for CI environments with limited capacity.
+app:
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+engine:
+  resources:
+    requests:
+      cpu: "150m"
+      memory: "384Mi"
+    limits:
+      cpu: "300m"
+      memory: "768Mi"
+
+analytics:
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "512Mi"
+    limits:
+      cpu: "400m"
+      memory: "1Gi"
+
+postgres:
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "512Mi"
+    limits:
+      cpu: "400m"
+      memory: "1Gi"
+
+redis:
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+    limits:
+      cpu: "150m"
+      memory: "256Mi"
+
+tables:
+  resources:
+    requests:
+      cpu: "150m"
+      memory: "256Mi"
+
+nginx:
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "100m"
+      memory: "128Mi"
