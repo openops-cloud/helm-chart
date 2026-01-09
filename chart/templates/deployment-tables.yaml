@@ -24,9 +24,10 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.tables.env) | nindent 10 }}
+{{- with .Values.tables.resources }}
         resources:
-          requests:
-            memory: "512Mi"
+{{ toYaml . | indent 10 }}
+{{- end }}
         volumeMounts:
         - name: tables-data
           mountPath: /baserow/data

@@ -85,11 +85,25 @@ app:
   name: openops-app
   image: openops-app
   replicas: 1
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
 
 engine:
   name: openops-engine
   image: openops-engine
   replicas: 1
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
   env:
     OPS_BASE_CODE_DIRECTORY: /tmp/codes
     OPS_SERVER_API_URL: '{{ printf "%s/api/" (include "openops.appServiceUrl" .) }}'
@@ -99,6 +113,9 @@ tables:
   image: openops-tables
   tag: "0.2.14"
   replicas: 1
+  resources:
+    requests:
+      memory: "512Mi"
   env:
     BASEROW_PUBLIC_URL: "{{ .Values.openopsEnv.OPS_OPENOPS_TABLES_PUBLIC_URL }}"
     BASEROW_PRIVATE_URL: "{{ .Values.openopsEnv.OPS_OPENOPS_TABLES_API_URL }}"
@@ -127,6 +144,13 @@ analytics:
   image: openops-analytics
   tag: "0.14.1"
   replicas: 1
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
   env:
     ADMIN_PASSWORD: "{{ .Values.openopsEnv.OPS_ANALYTICS_ADMIN_PASSWORD }}"
     POWERUSER_PASSWORD: "{{ .Values.openopsEnv.ANALYTICS_POWERUSER_PASSWORD }}"
@@ -146,6 +170,13 @@ postgres:
   image: postgres
   tag: "14.4"
   replicas: 1
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
   env:
     maxConnections: "300"
     POSTGRES_USER: "{{ .Values.openopsEnv.OPS_POSTGRES_USERNAME }}"
@@ -162,6 +193,13 @@ redis:
   image: redis
   tag: "7.4.0"
   replicas: 1
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
   storage:
     size: 5Gi
     storageClass: ""
@@ -173,6 +211,13 @@ nginx:
   image: nginx
   tag: "1.27.4"
   replicas: 1
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
   service:
     port: 80
     type: LoadBalancer

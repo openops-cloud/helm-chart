@@ -32,13 +32,10 @@ spec:
             value: "/var/lib/postgresql/data/pgdata"
         ports:
         - containerPort: 5432
+{{- with .Values.postgres.resources }}
         resources:
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-          limits:
-            memory: "1Gi"
-            cpu: "500m"
+{{ toYaml . | indent 8 }}
+{{- end }}
         volumeMounts:
         - name: postgres-data
           mountPath: /var/lib/postgresql/data

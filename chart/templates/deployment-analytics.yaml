@@ -26,13 +26,10 @@ spec:
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.analytics.env) | nindent 10 }}
         ports:
         - containerPort: 8088
+{{- with .Values.analytics.resources }}
         resources:
-          requests:
-            memory: "1Gi"
-            cpu: "500m"
-          limits:
-            memory: "2Gi"
-            cpu: "1000m"
+{{ toYaml . | indent 10 }}
+{{- end }}
         livenessProbe:
           httpGet:
             path: /health
