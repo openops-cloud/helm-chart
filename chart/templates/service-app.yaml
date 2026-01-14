@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: {{ .Values.app.name }}
   labels:
-    app: {{ .Values.app.name }}
+    {{- include "openops.componentLabels" (dict "root" . "component" "app") | nindent 4 }}
 spec:
   type: ClusterIP
   ports:
@@ -12,4 +12,4 @@ spec:
     protocol: TCP
     name: http
   selector:
-    app: {{ .Values.app.name }}
+    {{- include "openops.componentSelectorLabels" (dict "root" . "component" "app") | nindent 4 }}

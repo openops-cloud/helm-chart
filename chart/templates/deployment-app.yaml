@@ -3,16 +3,16 @@ kind: Deployment
 metadata:
   name: {{ .Values.app.name }}
   labels:
-    app: {{ .Values.app.name }}
+    {{- include "openops.componentLabels" (dict "root" . "component" "app") | nindent 4 }}
 spec:
   replicas: {{ .Values.app.replicas }}
   selector:
     matchLabels:
-      app: {{ .Values.app.name }}
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "app") | nindent 6 }}
   template:
     metadata:
       labels:
-        app: {{ .Values.app.name }}
+        {{- include "openops.componentSelectorLabels" (dict "root" . "component" "app") | nindent 8 }}
 {{ with include "openops.secretChecksum" . }}
       annotations:
         checksum/secret-env: {{ . }}

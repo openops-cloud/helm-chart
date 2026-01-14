@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: postgres-data-pvc
   labels:
-    app: {{ .Values.postgres.name }}
+    {{- include "openops.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
 spec:
   accessModes:
     - ReadWriteOnce

@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: tables-data-pvc
   labels:
-    app: {{ .Values.tables.name }}
+    {{- include "openops.componentLabels" (dict "root" . "component" "tables") | nindent 4 }}
 spec:
   accessModes:
     - ReadWriteOnce

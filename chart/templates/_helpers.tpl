@@ -49,6 +49,35 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Component-specific labels
+Expected dict: { "root": $, "component": "app" }
+*/}}
+{{- define "openops.componentLabels" -}}
+{{- $root := .root -}}
+{{- $component := .component -}}
+helm.sh/chart: {{ include "openops.chart" $root }}
+app.kubernetes.io/name: {{ include "openops.name" $root }}
+app.kubernetes.io/instance: {{ $root.Release.Name }}
+app.kubernetes.io/component: {{ $component }}
+{{- if $root.Chart.AppVersion }}
+app.kubernetes.io/version: {{ $root.Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ $root.Release.Service }}
+{{- end }}
+
+{{/*
+Component-specific selector labels
+Expected dict: { "root": $, "component": "app" }
+*/}}
+{{- define "openops.componentSelectorLabels" -}}
+{{- $root := .root -}}
+{{- $component := .component -}}
+app.kubernetes.io/name: {{ include "openops.name" $root }}
+app.kubernetes.io/instance: {{ $root.Release.Name }}
+app.kubernetes.io/component: {{ $component }}
+{{- end }}
+
+{{/*
 Redis connection parameters
 */}}
 {{- define "openops.redisHost" -}}
