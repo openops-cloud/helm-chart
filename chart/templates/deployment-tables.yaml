@@ -26,7 +26,7 @@ spec:
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.tables.env) | nindent 10 }}
 {{- with .Values.tables.resources }}
         resources:
-{{ toYaml . | indent 10 }}
+{{ toYaml . | nindent 10 }}
 {{- end }}
         volumeMounts:
         - name: tables-data

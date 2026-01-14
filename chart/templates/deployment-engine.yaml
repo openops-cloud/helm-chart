@@ -34,5 +34,5 @@ spec:
             - containerPort: 3005
 {{- with .Values.engine.resources }}
           resources:
-{{ toYaml . | indent 12 }}
+{{ toYaml . | nindent 12 }}
 {{- end }}

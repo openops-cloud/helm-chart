@@ -28,7 +28,7 @@ spec:
         - containerPort: 8088
 {{- with .Values.analytics.resources }}
         resources:
-{{ toYaml . | indent 10 }}
+{{ toYaml . | nindent 10 }}
 {{- end }}
         livenessProbe:
           httpGet:
