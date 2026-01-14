@@ -215,6 +215,9 @@ nginx:
 
 ingress:
   enabled: false
+  # Both className and ingressClassName are exposed for backward compatibility
+  # with older ingress controller configurations. On Kubernetes 1.18+,
+  # prefer setting ingressClassName. Leave className empty unless explicitly needed.
   className: ""
   ingressClassName: ""
   annotations: {}
@@ -227,6 +230,7 @@ ingress:
           servicePort: 80
   tls:
     enabled: false
+    # TLS-related settings below apply only to nginx ingress controller
     sslProtocols: "TLSv1.2 TLSv1.3"
     sslCiphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384"
     hstsMaxAge: "31536000"
