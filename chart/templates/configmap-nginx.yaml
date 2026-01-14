@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: nginx-config
   labels:
-    app: {{ .Values.nginx.name }}
+    {{- include "openops.componentLabels" (dict "root" . "component" "nginx") | nindent 4 }}
 data:
   nginx.gateway.conf: |
     server {

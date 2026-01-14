@@ -3,16 +3,16 @@ kind: Deployment
 metadata:
   name: {{ .Values.redis.name }}
   labels:
-    app: {{ .Values.redis.name }}
+    {{- include "openops.componentLabels" (dict "root" . "component" "redis") | nindent 4 }}
 spec:
   replicas: {{ .Values.redis.replicas }}
   selector:
     matchLabels:
-      app: {{ .Values.redis.name }}
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "redis") | nindent 6 }}
   template:
     metadata:
       labels:
-        app: {{ .Values.redis.name }}
+        {{- include "openops.componentSelectorLabels" (dict "root" . "component" "redis") | nindent 8 }}
     spec:
       containers:
       - name: {{ .Values.redis.name }}
