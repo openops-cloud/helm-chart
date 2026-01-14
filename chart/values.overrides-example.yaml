@@ -3,7 +3,7 @@
 # Make sure to regenerate passwords and secrets.
 
 openopsEnv:
-  OPS_PUBLIC_URL: "http://openops.example.com"
+  OPS_PUBLIC_URL: "https://openops.example.com"
   OPS_OPENOPS_ADMIN_EMAIL: openops@example.com
   OPS_OPENOPS_ADMIN_PASSWORD: 9wqhK7jehmxAQlre
   OPS_ENCRYPTION_KEY: 7de996f020438444dc2c79e9b843805d
@@ -11,3 +11,20 @@ openopsEnv:
   OPS_POSTGRES_PASSWORD: WZKUM0tSvFC6VWai
   OPS_ANALYTICS_ADMIN_PASSWORD: 7YO7YEVRaECPQimI
   ANALYTICS_POWERUSER_PASSWORD: v5vIvwhdBDWwx4el
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  hosts:
+    - host: openops.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          serviceName: nginx
+          servicePort: 80
+  tls:
+    enabled: true
+    hosts:
+      - hostNames:
+          - openops.example.com
+        secretName: openops-tls
