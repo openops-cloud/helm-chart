@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: postgres-init-script
   labels:
-    app: {{ .Values.postgres.name }}
+    {{- include "openops.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
 data:
   init-db.sh: |
     #!/bin/bash

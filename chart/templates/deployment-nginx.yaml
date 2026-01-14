@@ -3,16 +3,16 @@ kind: Deployment
 metadata:
   name: {{ .Values.nginx.name }}
   labels:
-    app: {{ .Values.nginx.name }}
+    {{- include "openops.componentLabels" (dict "root" . "component" "nginx") | nindent 4 }}
 spec:
   replicas: {{ .Values.nginx.replicas }}
   selector:
     matchLabels:
-      app: {{ .Values.nginx.name }}
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "nginx") | nindent 6 }}
   template:
     metadata:
       labels:
-        app: {{ .Values.nginx.name }}
+        {{- include "openops.componentSelectorLabels" (dict "root" . "component" "nginx") | nindent 8 }}
     spec:
       containers:
       - name: {{ .Values.nginx.name }}

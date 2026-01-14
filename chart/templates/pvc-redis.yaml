@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: redis-data-pvc
   labels:
-    app: {{ .Values.redis.name }}
+    {{- include "openops.componentLabels" (dict "root" . "component" "redis") | nindent 4 }}
 spec:
   accessModes:
     - ReadWriteOnce
