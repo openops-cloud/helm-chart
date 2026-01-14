@@ -28,6 +28,8 @@ spec:
         resources:
 {{ toYaml . | nindent 10 }}
 {{- end }}
+        ports:
+        - containerPort: 80
         volumeMounts:
         - name: tables-data
           mountPath: /baserow/data

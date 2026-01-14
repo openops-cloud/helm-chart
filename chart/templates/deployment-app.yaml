@@ -29,20 +29,20 @@ spec:
               value: app
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnv) | nindent 12 }}
           ports:
-            - containerPort: 80
+            - containerPort: 3000
 {{- with .Values.app.resources }}
           resources:
 {{ toYaml . | nindent 12 }}
 {{- end }}
           readinessProbe:
             httpGet:
-              path: /api/v1/health
-              port: 80
+              path: /v1/health
+              port: 3000
             initialDelaySeconds: 30
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /api/v1/health
-              port: 80
+              path: /v1/health
+              port: 3000
             initialDelaySeconds: 60
             periodSeconds: 30
