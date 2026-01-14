@@ -3,16 +3,16 @@ kind: Deployment
 metadata:
   name: {{ .Values.analytics.name }}
   labels:
-    app: {{ .Values.analytics.name }}
+    {{- include "openops.componentLabels" (dict "root" . "component" "analytics") | nindent 4 }}
 spec:
   replicas: {{ .Values.analytics.replicas }}
   selector:
     matchLabels:
-      app: {{ .Values.analytics.name }}
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "analytics") | nindent 6 }}
   template:
     metadata:
       labels:
-        app: {{ .Values.analytics.name }}
+        {{- include "openops.componentSelectorLabels" (dict "root" . "component" "analytics") | nindent 8 }}
     spec:
       containers:
       - name: {{ .Values.analytics.name }}
