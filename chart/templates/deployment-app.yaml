@@ -14,10 +14,14 @@ spec:
       labels:
         {{- include "openops.componentSelectorLabels" (dict "root" . "component" "app") | nindent 8 }}
     spec:
+      securityContext:
+        {{- toYaml .Values.securityContext.pod | nindent 8 }}
       containers:
         - name: {{ .Values.app.name }}
           image: "{{ .Values.image.repository }}/{{ .Values.app.image }}:{{ .Values.global.version }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext.container | nindent 12 }}
           env:
             - name: NODE_OPTIONS
               value: "--no-node-snapshot"

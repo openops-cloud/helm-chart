@@ -1,6 +1,23 @@
 global:
   version: "latest"
 
+# Default security contexts for Restricted policy compliance
+securityContext:
+  pod:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  container:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+
 image:
   repository: public.ecr.aws/openops
   pullPolicy: IfNotPresent

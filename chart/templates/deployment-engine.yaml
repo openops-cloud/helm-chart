@@ -14,10 +14,14 @@ spec:
       labels:
         {{- include "openops.componentSelectorLabels" (dict "root" . "component" "engine") | nindent 8 }}
     spec:
+      securityContext:
+        {{- toYaml .Values.securityContext.pod | nindent 8 }}
       containers:
         - name: {{ .Values.engine.name }}
           image: "{{ .Values.image.repository }}/{{ .Values.engine.image }}:{{ .Values.global.version }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext.container | nindent 12 }}
           command: [ "/bin/sh", "-c", "cp -r /var/tmp-base/. /tmp/ && node main.js" ]
           env:
             - name: NODE_OPTIONS
