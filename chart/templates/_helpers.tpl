@@ -183,10 +183,14 @@ Expected dict: { "root": $, "env": dict }
 
 {{/*
 Checksum of the rendered secret manifest to trigger pod rollouts when sensitive data changes.
+Only compute the checksum when this chart actually creates the secret, i.e. when
+.Values.secretEnv.create is true and .Values.secretEnv.existingSecret is not set.
 */}}
 {{- define "openops.secretChecksum" -}}
+{{- if and .Values.secretEnv .Values.secretEnv.create (not .Values.secretEnv.existingSecret) -}}
 {{- $secretManifest := include (print $.Template.BasePath "/secret-env.yaml") . -}}
 {{- if $secretManifest }}
 {{- printf "%s" $secretManifest | sha256sum -}}
+{{- end }}
 {{- end }}
 {{- end }}
