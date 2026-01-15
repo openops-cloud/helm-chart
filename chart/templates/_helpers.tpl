@@ -189,12 +189,21 @@ Returns empty string when using an external secret to avoid circular dependencie
 */}}
 {{- define "openops.secretChecksum" -}}
 {{- if and .Values.secretEnv .Values.secretEnv.create (not .Values.secretEnv.existingSecret) -}}
+{{- $root := . -}}
 {{- $secretData := dict -}}
 {{- if .Values.secretEnv.data -}}
-{{- $_ := set $secretData "data" .Values.secretEnv.data -}}
+{{- $data := dict -}}
+{{- range $k, $v := .Values.secretEnv.data }}
+{{- $_ := set $data $k (tpl (tpl $v $root) $root | b64enc) -}}
+{{- end -}}
+{{- $_ := set $secretData "data" $data -}}
 {{- end -}}
 {{- if .Values.secretEnv.stringData -}}
-{{- $_ := set $secretData "stringData" .Values.secretEnv.stringData -}}
+{{- $renderedStringData := dict -}}
+{{- range $k, $v := .Values.secretEnv.stringData }}
+{{- $_ := set $renderedStringData $k (tpl (tpl $v $root) $root) -}}
+{{- end }}
+{{- $_ := set $secretData "stringData" $renderedStringData -}}
 {{- end -}}
 {{- if $secretData -}}
 {{- toYaml $secretData | sha256sum -}}
