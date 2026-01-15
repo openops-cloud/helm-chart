@@ -48,7 +48,10 @@ tables:
   resources:
     requests:
       cpu: "150m"
-      memory: "256Mi"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "2Gi"
 
 nginx:
   resources:
