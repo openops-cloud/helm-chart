@@ -16,6 +16,9 @@ spec:
     spec:
       securityContext:
         {{- toYaml .Values.securityContext.pod | nindent 8 }}
+      volumes:
+      - name: tmp
+        emptyDir: {}
       containers:
         - name: {{ .Values.engine.name }}
           image: "{{ .Values.image.repository }}/{{ .Values.engine.image }}:{{ .Values.global.version }}"
@@ -32,6 +35,9 @@ spec:
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.engine.env) | nindent 12 }}
           ports:
             - containerPort: 3005
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
 {{- with .Values.engine.resources }}
           resources:
 {{ toYaml . | indent 12 }}

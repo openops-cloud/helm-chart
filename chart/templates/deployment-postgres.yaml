@@ -15,13 +15,13 @@ spec:
         {{- include "openops.componentSelectorLabels" (dict "root" . "component" "postgres") | nindent 8 }}
     spec:
       securityContext:
-        {{- toYaml .Values.securityContext.pod | nindent 8 }}
+        {{- toYaml .Values.securityContext.postgresOverride.pod | nindent 8 }}
       containers:
       - name: {{ .Values.postgres.name }}
         image: {{ .Values.postgres.image }}:{{ .Values.postgres.tag }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         securityContext:
-          {{- toYaml .Values.securityContext.container | nindent 10 }}
+          {{- toYaml .Values.securityContext.postgresOverride.container | nindent 10 }}
         args:
         - postgres
         - -c

@@ -17,6 +17,38 @@ securityContext:
     capabilities:
       drop:
         - ALL
+  # Override for postgres (official image runs as UID 999)
+  postgresOverride:
+    pod:
+      runAsNonRoot: true
+      runAsUser: 999
+      fsGroup: 999
+      seccompProfile:
+        type: RuntimeDefault
+    container:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      runAsNonRoot: true
+      runAsUser: 999
+      capabilities:
+        drop:
+          - ALL
+  # Override for redis (official image runs as UID 999)
+  redisOverride:
+    pod:
+      runAsNonRoot: true
+      runAsUser: 999
+      fsGroup: 999
+      seccompProfile:
+        type: RuntimeDefault
+    container:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      runAsNonRoot: true
+      runAsUser: 999
+      capabilities:
+        drop:
+          - ALL
 
 image:
   repository: public.ecr.aws/openops
