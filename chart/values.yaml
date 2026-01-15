@@ -1,5 +1,5 @@
 global:
-  version: "latest"
+  version: "1.0.0"
 
 image:
   repository: public.ecr.aws/openops

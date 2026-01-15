@@ -1,0 +1,176 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "OpenOps Helm Chart Values Schema",
+  "description": "Schema validation for OpenOps Helm chart values to ensure deterministic upgrades",
+  "required": ["global", "image", "openopsEnv"],
+  "properties": {
+    "global": {
+      "type": "object",
+      "required": ["version"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "Immutable version tag for app and engine images",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.-]+)?$"
+        }
+      }
+    },
+    "image": {
+      "type": "object",
+      "required": ["repository", "pullPolicy"],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "description": "Container registry repository"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "description": "Image pull policy"
+        }
+      }
+    },
+    "openopsEnv": {
+      "type": "object",
+      "description": "Environment variables for OpenOps components"
+    },
+    "app": {
+      "type": "object",
+      "required": ["name", "image", "replicas"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "engine": {
+      "type": "object",
+      "required": ["name", "image", "replicas"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "tables": {
+      "type": "object",
+      "required": ["name", "image", "tag", "replicas"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Immutable version tag for tables image",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.-]+)?$"
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "analytics": {
+      "type": "object",
+      "required": ["name", "image", "tag", "replicas"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Immutable version tag for analytics image",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.-]+)?$"
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "postgres": {
+      "type": "object",
+      "required": ["name", "image", "tag", "replicas"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Immutable version tag for postgres image",
+          "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?(-[a-zA-Z0-9.-]+)?$"
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "redis": {
+      "type": "object",
+      "required": ["name", "image", "tag", "replicas"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Immutable version tag for redis image",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.-]+)?$"
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "nginx": {
+      "type": "object",
+      "required": ["name", "image", "tag", "replicas"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Immutable version tag for nginx image",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.-]+)?$"
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
