@@ -6,6 +6,7 @@ metadata:
     {{- include "openops.componentLabels" (dict "root" . "component" "nginx") | nindent 4 }}
 spec:
   replicas: {{ .Values.nginx.replicas }}
+  {{- include "openops.deploymentStrategy" . | nindent 2 }}
   selector:
     matchLabels:
       {{- include "openops.componentSelectorLabels" (dict "root" . "component" "nginx") | nindent 6 }}
@@ -16,6 +17,9 @@ spec:
     spec:
       securityContext:
         {{- toYaml .Values.securityContext.pod | nindent 8 }}
+      {{- include "openops.priorityClassName" . | nindent 6 }}
+      {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "nginx") | nindent 6 }}
+      {{- include "openops.affinity" (dict "root" . "component" "nginx") | nindent 6 }}
       volumes:
       - name: nginx-config
         configMap:
@@ -34,7 +38,7 @@ spec:
         - containerPort: 80
 {{- with .Values.nginx.resources }}
         resources:
-{{ toYaml . | indent 8 }}
+{{ toYaml . | nindent 10 }}
 {{- end }}
         volumeMounts:
         - name: nginx-config

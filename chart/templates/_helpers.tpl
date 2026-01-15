@@ -123,10 +123,23 @@ Service URLs
 {{- end }}
 
 {{/*
+Check if nginx ingress controller is being used
+*/}}
+{{- define "openops.isNginxIngress" -}}
+{{- or (eq .Values.ingress.ingressClassName "nginx") (eq .Values.ingress.className "nginx") -}}
+{{- end }}
+
+{{/*
 Secret name used to store sensitive environment variables.
 */}}
 {{- define "openops.secretName" -}}
+{{- $secretConfig := default (dict) .Values.secretEnv -}}
+{{- $existing := default "" $secretConfig.existingSecret -}}
+{{- if $existing -}}
+{{- $existing -}}
+{{- else -}}
 {{- printf "%s-env" (include "openops.fullname" .) -}}
+{{- end -}}
 {{- end }}
 
 {{/*
@@ -172,5 +185,103 @@ Expected dict: { "root": $, "env": dict }
 {{- range $k, $v := $env }}
 {{ include "openops.envVar" (dict "root" $root "key" $k "value" $v) }}
 {{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Render deployment strategy
+*/}}
+{{- define "openops.deploymentStrategy" -}}
+{{- if .Values.global.strategy }}
+strategy:
+  type: {{ .Values.global.strategy.type }}
+  {{- if and (eq .Values.global.strategy.type "RollingUpdate") .Values.global.strategy.rollingUpdate }}
+  rollingUpdate:
+    maxSurge: {{ .Values.global.strategy.rollingUpdate.maxSurge }}
+    maxUnavailable: {{ .Values.global.strategy.rollingUpdate.maxUnavailable }}
+  {{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Render topology spread constraints
+Expected dict: { "root": $, "component": "app" }
+*/}}
+{{- define "openops.topologySpreadConstraints" -}}
+{{- $root := .root -}}
+{{- $component := .component -}}
+{{- if and $root.Values.global.topologySpreadConstraints (hasKey $root.Values.global.topologySpreadConstraints "enabled") ($root.Values.global.topologySpreadConstraints.enabled) }}
+topologySpreadConstraints:
+  - maxSkew: {{ $root.Values.global.topologySpreadConstraints.maxSkew }}
+    topologyKey: {{ $root.Values.global.topologySpreadConstraints.topologyKey }}
+    whenUnsatisfiable: {{ $root.Values.global.topologySpreadConstraints.whenUnsatisfiable }}
+    labelSelector:
+      matchLabels:
+        {{- include "openops.componentSelectorLabels" (dict "root" $root "component" $component) | nindent 8 }}
+{{- end }}
+{{- end }}
+
+{{/*
+Render affinity rules
+Expected dict: { "root": $, "component": "app" }
+*/}}
+{{- define "openops.affinity" -}}
+{{- $root := .root -}}
+{{- $component := .component -}}
+{{- $affinity := $root.Values.global.affinity -}}
+{{- if and $affinity $affinity.enabled }}
+affinity:
+  podAntiAffinity:
+    {{- $podAntiAffinity := $affinity.podAntiAffinity -}}
+    {{- if and $podAntiAffinity $podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution }}
+    preferredDuringSchedulingIgnoredDuringExecution:
+      {{- range $podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution }}
+      - weight: {{ .weight }}
+        podAffinityTerm:
+          topologyKey: {{ .podAffinityTerm.topologyKey }}
+          labelSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" $root "component" $component) | nindent 14 }}
+      {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Render priority class name
+*/}}
+{{- define "openops.priorityClassName" -}}
+{{- if .Values.global.priorityClassName }}
+priorityClassName: {{ .Values.global.priorityClassName }}
+{{- end }}
+{{- end }}
+
+{{/*
+Checksum of the secret data to trigger pod rollouts when sensitive data changes.
+Only compute the checksum when this chart actually creates the secret, i.e., when
+.Values.secretEnv.create is true and .Values.secretEnv.existingSecret is not set.
+Returns empty string when using an external secret to avoid circular dependencies.
+*/}}
+{{- define "openops.secretChecksum" -}}
+{{- if and .Values.secretEnv (default true .Values.secretEnv.create) (not .Values.secretEnv.existingSecret) -}}
+{{- $root := . -}}
+{{- $secretData := dict -}}
+{{- if .Values.secretEnv.data -}}
+{{- $data := dict -}}
+{{- range $k, $v := .Values.secretEnv.data }}
+{{- $_ := set $data $k (tpl (tpl $v $root) $root | b64enc) -}}
+{{- end -}}
+{{- $_ := set $secretData "data" $data -}}
+{{- end -}}
+{{- if .Values.secretEnv.stringData -}}
+{{- $renderedStringData := dict -}}
+{{- range $k, $v := .Values.secretEnv.stringData }}
+{{- $_ := set $renderedStringData $k (tpl (tpl $v $root) $root) -}}
+{{- end }}
+{{- $_ := set $secretData "stringData" $renderedStringData -}}
+{{- end -}}
+{{- if $secretData -}}
+{{- toYaml $secretData | sha256sum -}}
+{{- end -}}
 {{- end }}
 {{- end }}

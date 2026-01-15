@@ -6,6 +6,7 @@ metadata:
     {{- include "openops.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
 spec:
   replicas: {{ .Values.postgres.replicas }}
+  {{- include "openops.deploymentStrategy" . | nindent 2 }}
   selector:
     matchLabels:
       {{- include "openops.componentSelectorLabels" (dict "root" . "component" "postgres") | nindent 6 }}
@@ -13,9 +14,16 @@ spec:
     metadata:
       labels:
         {{- include "openops.componentSelectorLabels" (dict "root" . "component" "postgres") | nindent 8 }}
+{{ with include "openops.secretChecksum" . }}
+      annotations:
+        checksum/secret-env: {{ . }}
+{{- end }}
     spec:
       securityContext:
         {{- toYaml .Values.securityContext.postgresOverride.pod | nindent 8 }}
+      {{- include "openops.priorityClassName" . | nindent 6 }}
+      {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "postgres") | nindent 6 }}
+      {{- include "openops.affinity" (dict "root" . "component" "postgres") | nindent 6 }}
       containers:
       - name: {{ .Values.postgres.name }}
         image: {{ .Values.postgres.image }}:{{ .Values.postgres.tag }}
@@ -34,7 +42,7 @@ spec:
         - containerPort: 5432
 {{- with .Values.postgres.resources }}
         resources:
-{{ toYaml . | indent 8 }}
+{{ toYaml . | nindent 8 }}
 {{- end }}
         volumeMounts:
         - name: postgres-data
