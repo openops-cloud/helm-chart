@@ -10,7 +10,7 @@ metadata:
     # Retained for backward compatibility with Kubernetes versions prior to 1.18.
     kubernetes.io/ingress.class: {{ .Values.ingress.className }}
     {{- end }}
-    {{- if and .Values.ingress.tlsConfig.enabled (or (eq .Values.ingress.ingressClassName "nginx") (eq .Values.ingress.className "nginx")) }}
+    {{- if and .Values.ingress.tlsConfig.enabled (include "openops.isNginxIngress" .) }}
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/ssl-protocols: "{{ .Values.ingress.tlsConfig.sslProtocols }}"
     nginx.ingress.kubernetes.io/ssl-ciphers: "{{ .Values.ingress.tlsConfig.sslCiphers }}"

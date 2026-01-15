@@ -227,9 +227,12 @@ nginx:
 
 ingress:
   enabled: false
-  # Both className and ingressClassName are exposed for backward compatibility
-  # with older ingress controller configurations. On Kubernetes 1.18+,
-  # prefer setting ingressClassName. Leave className empty unless explicitly needed.
+  # Ingress class configuration:
+  # - For Kubernetes 1.18+ (and most modern ingress controllers), use ingressClassName.
+  # - className is kept only for backward compatibility with older ingress setups.
+  # Important: Set at most ONE of the following fields. Do NOT set both at the same time.
+  #   - Prefer setting ingressClassName and leave className empty ("") on new clusters.
+  #   - Only set className if you explicitly rely on a legacy ingress controller behavior.
   className: ""
   ingressClassName: ""
   annotations: {}
@@ -238,6 +241,7 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+          # serviceName must match a service defined in this chart (nginx, app, engine, tables, analytics)
           serviceName: nginx
           servicePort: 80
   tls:
