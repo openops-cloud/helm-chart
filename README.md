@@ -8,6 +8,8 @@ This repository contains the Helm chart that deploys the OpenOps application sta
 - `chart/Chart.yaml`: Chart metadata for the `openops` release.
 - `chart/values.yaml`: Default configuration values.
 - `chart/values.overrides-example.yaml`: Sample overrides file to copy and customize.
+- `chart/values.ci.yaml`: Resource-constrained overlay for CI environments.
+- `chart/values.production.yaml`: Production overlay with externalized dependencies and cloud settings.
 - `chart/templates/`: Kubernetes manifests templated by Helm.
 
 ## Components
@@ -32,6 +34,39 @@ This repository contains the Helm chart that deploys the OpenOps application sta
    ```bash
    kubectl get svc nginx -n openops
    ```
+
+## Multi-environment deployments
+Use overlays to configure different environments:
+
+**Development (default):**
+```bash
+helm upgrade --install openops ./chart -n openops-dev \
+  -f chart/values.yaml \
+  -f values.overrides.yaml
+```
+
+**CI/Testing:**
+```bash
+helm upgrade --install openops ./chart -n openops-ci \
+  -f chart/values.yaml \
+  -f chart/values.ci.yaml \
+  -f values.overrides.yaml
+```
+
+**Production (externalized dependencies):**
+```bash
+helm upgrade --install openops ./chart -n openops-prod \
+  -f chart/values.yaml \
+  -f chart/values.production.yaml \
+  -f values.overrides.yaml
+```
+
+The `values.production.yaml` overlay demonstrates:
+- Externalized PostgreSQL (AWS RDS, GCP Cloud SQL, Azure Database)
+- Externalized Redis (AWS ElastiCache, GCP Memorystore, Azure Cache)
+- Cloud-specific storage classes and annotations
+- Production-grade resource allocations and replica counts
+- Security and logging best practices
 
 ## Storage
 The chart provisions PersistentVolumeClaims for:

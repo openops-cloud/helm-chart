@@ -1,3 +1,4 @@
 values.*.yaml
 !values.overrides-example.yaml
 !values.ci.yaml
+!values.production.yaml
