@@ -210,7 +210,7 @@ Expected dict: { "root": $, "component": "app" }
 {{- define "openops.topologySpreadConstraints" -}}
 {{- $root := .root -}}
 {{- $component := .component -}}
-{{- if $root.Values.global.topologySpreadConstraints.enabled }}
+{{- if and $root.Values.global.topologySpreadConstraints (hasKey $root.Values.global.topologySpreadConstraints "enabled") ($root.Values.global.topologySpreadConstraints.enabled) }}
 topologySpreadConstraints:
   - maxSkew: {{ $root.Values.global.topologySpreadConstraints.maxSkew }}
     topologyKey: {{ $root.Values.global.topologySpreadConstraints.topologyKey }}
@@ -228,12 +228,14 @@ Expected dict: { "root": $, "component": "app" }
 {{- define "openops.affinity" -}}
 {{- $root := .root -}}
 {{- $component := .component -}}
-{{- if $root.Values.global.affinity.enabled }}
+{{- $affinity := $root.Values.global.affinity -}}
+{{- if and $affinity $affinity.enabled }}
 affinity:
   podAntiAffinity:
-    {{- if $root.Values.global.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution }}
+    {{- $podAntiAffinity := $affinity.podAntiAffinity -}}
+    {{- if and $podAntiAffinity $podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution }}
     preferredDuringSchedulingIgnoredDuringExecution:
-      {{- range $root.Values.global.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution }}
+      {{- range $podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution }}
       - weight: {{ .weight }}
         podAffinityTerm:
           topologyKey: {{ .podAffinityTerm.topologyKey }}

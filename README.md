@@ -158,4 +158,3 @@ global:
   priorityClassName: "system-cluster-critical"
 ```
 
-
