@@ -23,8 +23,8 @@ ingress:
           serviceName: nginx
           servicePort: 80
   tls:
+    - hosts:
+        - openops.example.com
+      secretName: openops-tls
+  tlsConfig:
     enabled: true
-    hosts:
-      - hosts:
-          - openops.example.com
-        secretName: openops-tls

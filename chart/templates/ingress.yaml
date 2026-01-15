@@ -10,14 +10,14 @@ metadata:
     # Retained for backward compatibility with Kubernetes versions prior to 1.18.
     kubernetes.io/ingress.class: {{ .Values.ingress.className }}
     {{- end }}
-    {{- if and .Values.ingress.tls.enabled (or (eq .Values.ingress.ingressClassName "nginx") (eq .Values.ingress.className "nginx")) }}
+    {{- if and .Values.ingress.tlsConfig.enabled (or (eq .Values.ingress.ingressClassName "nginx") (eq .Values.ingress.className "nginx")) }}
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/ssl-protocols: "{{ .Values.ingress.tls.sslProtocols }}"
-    nginx.ingress.kubernetes.io/ssl-ciphers: "{{ .Values.ingress.tls.sslCiphers }}"
+    nginx.ingress.kubernetes.io/ssl-protocols: "{{ .Values.ingress.tlsConfig.sslProtocols }}"
+    nginx.ingress.kubernetes.io/ssl-ciphers: "{{ .Values.ingress.tlsConfig.sslCiphers }}"
     nginx.ingress.kubernetes.io/hsts: "true"
-    nginx.ingress.kubernetes.io/hsts-max-age: "{{ .Values.ingress.tls.hstsMaxAge }}"
-    nginx.ingress.kubernetes.io/hsts-include-subdomains: "{{ .Values.ingress.tls.hstsIncludeSubdomains }}"
-    nginx.ingress.kubernetes.io/hsts-preload: "{{ .Values.ingress.tls.hstsPreload }}"
+    nginx.ingress.kubernetes.io/hsts-max-age: "{{ .Values.ingress.tlsConfig.hstsMaxAge }}"
+    nginx.ingress.kubernetes.io/hsts-include-subdomains: "{{ .Values.ingress.tlsConfig.hstsIncludeSubdomains }}"
+    nginx.ingress.kubernetes.io/hsts-preload: "{{ .Values.ingress.tlsConfig.hstsPreload }}"
     {{- end }}
     {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
@@ -26,17 +26,9 @@ spec:
   {{- if .Values.ingress.ingressClassName }}
   ingressClassName: {{ .Values.ingress.ingressClassName }}
   {{- end }}
-  {{- if .Values.ingress.tls.enabled }}
+  {{- with .Values.ingress.tls }}
   tls:
-  {{- range .Values.ingress.tls.hosts }}
-  - hosts:
-    {{- range .hosts }}
-    - {{ . | quote }}
-    {{- end }}
-    {{- if .secretName }}
-    secretName: {{ .secretName }}
-    {{- end }}
-  {{- end }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
   rules:
   {{- range .Values.ingress.hosts }}
