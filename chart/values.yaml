@@ -142,6 +142,10 @@ tables:
   storage:
     size: 10Gi
     storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    volumeMode: Filesystem
+    annotations: {}
 
 analytics:
   name: openops-analytics
@@ -189,6 +193,10 @@ postgres:
   storage:
     size: 20Gi
     storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    volumeMode: Filesystem
+    annotations: {}
   service:
     port: 5432
 
@@ -207,6 +215,10 @@ redis:
   storage:
     size: 5Gi
     storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    volumeMode: Filesystem
+    annotations: {}
   service:
     port: 6379
 
