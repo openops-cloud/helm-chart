@@ -13,6 +13,10 @@ spec:
     metadata:
       labels:
         {{- include "openops.componentSelectorLabels" (dict "root" . "component" "engine") | nindent 8 }}
+{{ with include "openops.secretChecksum" . }}
+      annotations:
+        checksum/secret-env: {{ . }}
+{{- end }}
     spec:
       containers:
         - name: {{ .Values.engine.name }}
@@ -30,5 +34,5 @@ spec:
             - containerPort: 3005
 {{- with .Values.engine.resources }}
           resources:
-{{ toYaml . | indent 12 }}
+{{ toYaml . | nindent 12 }}
 {{- end }}
