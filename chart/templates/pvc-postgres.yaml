@@ -4,9 +4,16 @@ metadata:
   name: postgres-data-pvc
   labels:
     {{- include "openops.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
+  {{- with .Values.postgres.storage.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   accessModes:
-    - ReadWriteOnce
+    {{- toYaml .Values.postgres.storage.accessModes | nindent 4 }}
+  {{- if .Values.postgres.storage.volumeMode }}
+  volumeMode: {{ .Values.postgres.storage.volumeMode }}
+  {{- end }}
   resources:
     requests:
       storage: {{ .Values.postgres.storage.size }}

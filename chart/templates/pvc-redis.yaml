@@ -4,9 +4,16 @@ metadata:
   name: redis-data-pvc
   labels:
     {{- include "openops.componentLabels" (dict "root" . "component" "redis") | nindent 4 }}
+  {{- with .Values.redis.storage.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   accessModes:
-    - ReadWriteOnce
+    {{- toYaml .Values.redis.storage.accessModes | nindent 4 }}
+  {{- if .Values.redis.storage.volumeMode }}
+  volumeMode: {{ .Values.redis.storage.volumeMode }}
+  {{- end }}
   resources:
     requests:
       storage: {{ .Values.redis.storage.size }}
