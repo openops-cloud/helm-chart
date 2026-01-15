@@ -1,6 +1,32 @@
 global:
   version: "latest"
 
+  # Deployment strategy for rolling updates
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  # Topology spread constraints to avoid single-node concentration
+  topologySpreadConstraints:
+    enabled: true
+    maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+
+  # Pod affinity/anti-affinity rules
+  affinity:
+    enabled: false
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+
+  # Priority class for pod scheduling
+  priorityClassName: ""
+
 image:
   repository: public.ecr.aws/openops
   pullPolicy: IfNotPresent

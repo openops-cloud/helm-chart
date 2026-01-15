@@ -102,3 +102,59 @@ Customize storage classes and sizes via `chart/values.yaml` or your overrides fi
 ## Dependencies
 The deployments include health checks and readiness probes so dependent services wait until their prerequisites are available.
 
+## Topology and rollout safeguards
+The chart provides built-in safeguards to avoid single-node concentration and ensure safe rolling updates:
+
+### Deployment strategy
+All deployments use a `RollingUpdate` strategy with configurable parameters (default: `maxSurge: 1`, `maxUnavailable: 0`) to ensure zero-downtime deployments.
+
+### Topology spread constraints
+When enabled (default), pods are distributed across nodes to avoid concentration on a single node:
+- **maxSkew**: Maximum difference in pod count between nodes (default: 1)
+- **topologyKey**: Topology domain key (default: `kubernetes.io/hostname`)
+- **whenUnsatisfiable**: Scheduling behavior when constraint cannot be met (default: `ScheduleAnyway`)
+
+Disable topology spread constraints:
+```yaml
+global:
+  topologySpreadConstraints:
+    enabled: false
+```
+
+### Pod anti-affinity
+Optional pod anti-affinity rules can be enabled to prefer scheduling pods on different nodes:
+```yaml
+global:
+  affinity:
+    enabled: true
+```
+
+### Priority classes
+Assign priority classes to pods for better scheduling control:
+```yaml
+global:
+  priorityClassName: "high-priority"
+```
+
+### Customizing safeguards
+Override the defaults in your values file:
+```yaml
+global:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 1
+  
+  topologySpreadConstraints:
+    enabled: true
+    maxSkew: 2
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: DoNotSchedule
+  
+  affinity:
+    enabled: true
+  
+  priorityClassName: "system-cluster-critical"
+```
+
