@@ -11,3 +11,15 @@ openopsEnv:
   OPS_POSTGRES_PASSWORD: WZKUM0tSvFC6VWai
   OPS_ANALYTICS_ADMIN_PASSWORD: 7YO7YEVRaECPQimI
   ANALYTICS_POWERUSER_PASSWORD: v5vIvwhdBDWwx4el
+
+# Tables needs more memory during initial migrations
+tables:
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+

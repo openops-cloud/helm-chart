@@ -35,6 +35,23 @@ This repository contains the Helm chart that deploys the OpenOps application sta
    kubectl get svc nginx -n openops
    ```
 
+## Secret hardening
+- All sensitive environment keys are rendered through a shared Kubernetes `Secret` so containers never embed credentials in-line.
+- Control how that secret is managed via the `secretEnv` block (disable creation, mark it `immutable`, or attach compliance labels/annotations).
+- When `secretEnv.existingSecret` is set (optionally with `create: false`), the chart references the externally managed secret, which is recommended for SOPS, ExternalSecrets, or Vault-driven workflows.
+- Values added under `secretEnv.stringData` stay in plain text for readability, while entries under `secretEnv.data` are templated and base64-encoded by the chart before being stored.
+- Workloads automatically receive a `checksum/secret-env` pod annotation so any change to the secret triggers a rolling restart.
+
+Example override:
+```yaml
+secretEnv:
+  create: false
+  existingSecret: openops-env
+  immutable: true
+  annotations:
+    secrets.kubernetes.io/managed-by: external
+```
+
 ## Multi-environment deployments
 Use overlays to configure different environments:
 

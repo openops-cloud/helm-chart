@@ -13,6 +13,10 @@ spec:
     metadata:
       labels:
         {{- include "openops.componentSelectorLabels" (dict "root" . "component" "app") | nindent 8 }}
+{{ with include "openops.secretChecksum" . }}
+      annotations:
+        checksum/secret-env: {{ . }}
+{{- end }}
     spec:
       containers:
         - name: {{ .Values.app.name }}
@@ -28,7 +32,7 @@ spec:
             - containerPort: 80
 {{- with .Values.app.resources }}
           resources:
-{{ toYaml . | indent 12 }}
+{{ toYaml . | nindent 12 }}
 {{- end }}
           readinessProbe:
             httpGet:
