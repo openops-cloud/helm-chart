@@ -4,9 +4,14 @@ metadata:
   name: tables-data-pvc
   labels:
     {{- include "openops.componentLabels" (dict "root" . "component" "tables") | nindent 4 }}
+  {{- with .Values.tables.storage.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   accessModes:
-    - ReadWriteOnce
+    {{- toYaml .Values.tables.storage.accessModes | nindent 4 }}
+  volumeMode: {{ .Values.tables.storage.volumeMode }}
   resources:
     requests:
       storage: {{ .Values.tables.storage.size }}
