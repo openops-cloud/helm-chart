@@ -14,6 +14,10 @@ spec:
     metadata:
       labels:
         {{- include "openops.componentSelectorLabels" (dict "root" . "component" "postgres") | nindent 8 }}
+{{ with include "openops.secretChecksum" . }}
+      annotations:
+        checksum/secret-env: {{ . }}
+{{- end }}
     spec:
       {{- include "openops.priorityClassName" . | nindent 6 }}
       {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "postgres") | nindent 6 }}
@@ -34,7 +38,7 @@ spec:
         - containerPort: 5432
 {{- with .Values.postgres.resources }}
         resources:
-{{ toYaml . | indent 8 }}
+{{ toYaml . | nindent 8 }}
 {{- end }}
         volumeMounts:
         - name: postgres-data

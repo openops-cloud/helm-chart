@@ -14,6 +14,10 @@ spec:
     metadata:
       labels:
         {{- include "openops.componentSelectorLabels" (dict "root" . "component" "analytics") | nindent 8 }}
+{{ with include "openops.secretChecksum" . }}
+      annotations:
+        checksum/secret-env: {{ . }}
+{{- end }}
     spec:
       {{- include "openops.priorityClassName" . | nindent 6 }}
       {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "analytics") | nindent 6 }}
@@ -28,7 +32,7 @@ spec:
         - containerPort: 8088
 {{- with .Values.analytics.resources }}
         resources:
-{{ toYaml . | indent 10 }}
+{{ toYaml . | nindent 10 }}
 {{- end }}
         livenessProbe:
           httpGet:
