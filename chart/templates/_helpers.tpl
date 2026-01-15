@@ -123,10 +123,23 @@ Service URLs
 {{- end }}
 
 {{/*
+Check if nginx ingress controller is being used
+*/}}
+{{- define "openops.isNginxIngress" -}}
+{{- or (eq .Values.ingress.ingressClassName "nginx") (eq .Values.ingress.className "nginx") -}}
+{{- end }}
+
+{{/*
 Secret name used to store sensitive environment variables.
 */}}
 {{- define "openops.secretName" -}}
+{{- $secretConfig := default (dict) .Values.secretEnv -}}
+{{- $existing := default "" $secretConfig.existingSecret -}}
+{{- if $existing -}}
+{{- $existing -}}
+{{- else -}}
 {{- printf "%s-env" (include "openops.fullname" .) -}}
+{{- end -}}
 {{- end }}
 
 {{/*
@@ -172,5 +185,35 @@ Expected dict: { "root": $, "env": dict }
 {{- range $k, $v := $env }}
 {{ include "openops.envVar" (dict "root" $root "key" $k "value" $v) }}
 {{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Checksum of the secret data to trigger pod rollouts when sensitive data changes.
+Only compute the checksum when this chart actually creates the secret, i.e., when
+.Values.secretEnv.create is true and .Values.secretEnv.existingSecret is not set.
+Returns empty string when using an external secret to avoid circular dependencies.
+*/}}
+{{- define "openops.secretChecksum" -}}
+{{- if and .Values.secretEnv (default true .Values.secretEnv.create) (not .Values.secretEnv.existingSecret) -}}
+{{- $root := . -}}
+{{- $secretData := dict -}}
+{{- if .Values.secretEnv.data -}}
+{{- $data := dict -}}
+{{- range $k, $v := .Values.secretEnv.data }}
+{{- $_ := set $data $k (tpl (tpl $v $root) $root | b64enc) -}}
+{{- end -}}
+{{- $_ := set $secretData "data" $data -}}
+{{- end -}}
+{{- if .Values.secretEnv.stringData -}}
+{{- $renderedStringData := dict -}}
+{{- range $k, $v := .Values.secretEnv.stringData }}
+{{- $_ := set $renderedStringData $k (tpl (tpl $v $root) $root) -}}
+{{- end }}
+{{- $_ := set $secretData "stringData" $renderedStringData -}}
+{{- end -}}
+{{- if $secretData -}}
+{{- toYaml $secretData | sha256sum -}}
+{{- end -}}
 {{- end }}
 {{- end }}

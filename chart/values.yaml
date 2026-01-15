@@ -71,6 +71,15 @@ openopsEnv:
   OPS_SLACK_APP_SIGNING_SECRET: ""
   OPS_SLACK_ENABLE_INTERACTIONS: "true"
 
+secretEnv:
+  create: true
+  existingSecret: ""
+  type: Opaque
+  immutable: false
+  labels: {}
+  annotations: {}
+  stringData: {}
+  data: {}
 
 app:
   name: openops-app
@@ -107,6 +116,10 @@ tables:
   resources:
     requests:
       memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
   env:
     BASEROW_PUBLIC_URL: "{{ .Values.openopsEnv.OPS_OPENOPS_TABLES_PUBLIC_URL }}"
     BASEROW_PRIVATE_URL: "{{ .Values.openopsEnv.OPS_OPENOPS_TABLES_API_URL }}"
@@ -224,4 +237,37 @@ nginx:
   service:
     port: 80
     type: LoadBalancer
+
+ingress:
+  enabled: false
+  # Ingress class configuration:
+  # - For Kubernetes 1.18+ (and most modern ingress controllers), use ingressClassName.
+  # - className is kept only for backward compatibility with older ingress setups.
+  # Important: Set at most ONE of the following fields. Do NOT set both at the same time.
+  #   - Prefer setting ingressClassName and leave className empty ("") on new clusters.
+  #   - Only set className if you explicitly rely on a legacy ingress controller behavior.
+  className: ""
+  ingressClassName: ""
+  annotations: {}
+  hosts:
+    - host: openops.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          # serviceName must match a service defined in this chart (nginx, app, engine, tables, analytics)
+          serviceName: nginx
+          servicePort: 80
+  tls:
+    # TLS certificate configuration (standard Kubernetes Ingress format)
+    - hosts:
+        - openops.example.com
+      secretName: openops-tls
+  # TLS-related settings below apply only to nginx ingress controller
+  tlsConfig:
+    enabled: false
+    sslProtocols: "TLSv1.2 TLSv1.3"
+    sslCiphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305"
+    hstsMaxAge: "31536000"
+    hstsIncludeSubdomains: "true"
+    hstsPreload: "true"
 
