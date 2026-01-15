@@ -188,7 +188,7 @@ Only compute the checksum when this chart actually creates the secret, i.e., whe
 Returns empty string when using an external secret to avoid circular dependencies.
 */}}
 {{- define "openops.secretChecksum" -}}
-{{- if and .Values.secretEnv .Values.secretEnv.create (not .Values.secretEnv.existingSecret) -}}
+{{- if and .Values.secretEnv (default true .Values.secretEnv.create) (not .Values.secretEnv.existingSecret) -}}
 {{- $root := . -}}
 {{- $secretData := dict -}}
 {{- if .Values.secretEnv.data -}}
