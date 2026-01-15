@@ -176,7 +176,7 @@ analytics:
 postgres:
   name: postgres
   image: postgres
-  tag: "14.4"
+  tag: "14.4.0"
   replicas: 1
   resources:
     requests:
