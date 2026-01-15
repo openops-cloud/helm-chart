@@ -11,8 +11,8 @@ metadata:
 spec:
   accessModes:
     {{- toYaml .Values.postgres.storage.accessModes | nindent 4 }}
-  {{- if .Values.postgres.storage.volumeMode }}
-  volumeMode: {{ .Values.postgres.storage.volumeMode }}
+  {{- with .Values.postgres.storage.volumeMode }}
+  volumeMode: {{ . }}
   {{- end }}
   resources:
     requests:

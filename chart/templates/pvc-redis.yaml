@@ -11,8 +11,8 @@ metadata:
 spec:
   accessModes:
     {{- toYaml .Values.redis.storage.accessModes | nindent 4 }}
-  {{- if .Values.redis.storage.volumeMode }}
-  volumeMode: {{ .Values.redis.storage.volumeMode }}
+  {{- with .Values.redis.storage.volumeMode }}
+  volumeMode: {{ . }}
   {{- end }}
   resources:
     requests:
