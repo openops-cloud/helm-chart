@@ -123,6 +123,13 @@ Service URLs
 {{- end }}
 
 {{/*
+Check if nginx ingress controller is being used
+*/}}
+{{- define "openops.isNginxIngress" -}}
+{{- or (eq .Values.ingress.ingressClassName "nginx") (eq .Values.ingress.className "nginx") -}}
+{{- end }}
+
+{{/*
 Secret name used to store sensitive environment variables.
 */}}
 {{- define "openops.secretName" -}}
