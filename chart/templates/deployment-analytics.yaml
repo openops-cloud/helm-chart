@@ -6,6 +6,7 @@ metadata:
     {{- include "openops.componentLabels" (dict "root" . "component" "analytics") | nindent 4 }}
 spec:
   replicas: {{ .Values.analytics.replicas }}
+  {{- include "openops.deploymentStrategy" . | nindent 2 }}
   selector:
     matchLabels:
       {{- include "openops.componentSelectorLabels" (dict "root" . "component" "analytics") | nindent 6 }}
@@ -14,6 +15,9 @@ spec:
       labels:
         {{- include "openops.componentSelectorLabels" (dict "root" . "component" "analytics") | nindent 8 }}
     spec:
+      {{- include "openops.priorityClassName" . | nindent 6 }}
+      {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "analytics") | nindent 6 }}
+      {{- include "openops.affinity" (dict "root" . "component" "analytics") | nindent 6 }}
       containers:
       - name: {{ .Values.analytics.name }}
         image: "{{ .Values.image.repository }}/{{ .Values.analytics.image }}:{{ .Values.analytics.tag }}"

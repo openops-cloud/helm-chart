@@ -174,3 +174,69 @@ Expected dict: { "root": $, "env": dict }
 {{- end }}
 {{- end }}
 {{- end }}
+
+{{/*
+Render deployment strategy
+*/}}
+{{- define "openops.deploymentStrategy" -}}
+{{- if .Values.global.strategy }}
+strategy:
+  type: {{ .Values.global.strategy.type }}
+  {{- if and (eq .Values.global.strategy.type "RollingUpdate") .Values.global.strategy.rollingUpdate }}
+  rollingUpdate:
+    maxSurge: {{ .Values.global.strategy.rollingUpdate.maxSurge }}
+    maxUnavailable: {{ .Values.global.strategy.rollingUpdate.maxUnavailable }}
+  {{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Render topology spread constraints
+Expected dict: { "root": $, "component": "app" }
+*/}}
+{{- define "openops.topologySpreadConstraints" -}}
+{{- $root := .root -}}
+{{- $component := .component -}}
+{{- if $root.Values.global.topologySpreadConstraints.enabled }}
+topologySpreadConstraints:
+  - maxSkew: {{ $root.Values.global.topologySpreadConstraints.maxSkew }}
+    topologyKey: {{ $root.Values.global.topologySpreadConstraints.topologyKey }}
+    whenUnsatisfiable: {{ $root.Values.global.topologySpreadConstraints.whenUnsatisfiable }}
+    labelSelector:
+      matchLabels:
+        {{- include "openops.componentSelectorLabels" (dict "root" $root "component" $component) | nindent 8 }}
+{{- end }}
+{{- end }}
+
+{{/*
+Render affinity rules
+Expected dict: { "root": $, "component": "app" }
+*/}}
+{{- define "openops.affinity" -}}
+{{- $root := .root -}}
+{{- $component := .component -}}
+{{- if $root.Values.global.affinity.enabled }}
+affinity:
+  podAntiAffinity:
+    {{- if $root.Values.global.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution }}
+    preferredDuringSchedulingIgnoredDuringExecution:
+      {{- range $root.Values.global.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution }}
+      - weight: {{ .weight }}
+        podAffinityTerm:
+          topologyKey: {{ .podAffinityTerm.topologyKey }}
+          labelSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" $root "component" $component) | nindent 14 }}
+      {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Render priority class name
+*/}}
+{{- define "openops.priorityClassName" -}}
+{{- if .Values.global.priorityClassName }}
+priorityClassName: {{ .Values.global.priorityClassName }}
+{{- end }}
+{{- end }}
