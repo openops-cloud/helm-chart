@@ -25,6 +25,6 @@ ingress:
   tls:
     enabled: true
     hosts:
-      - hostNames:
+      - hosts:
           - openops.example.com
         secretName: openops-tls

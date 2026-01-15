@@ -10,7 +10,7 @@ metadata:
     # Retained for backward compatibility with Kubernetes versions prior to 1.18.
     kubernetes.io/ingress.class: {{ .Values.ingress.className }}
     {{- end }}
-    {{- if .Values.ingress.tls.enabled }}
+    {{- if and .Values.ingress.tls.enabled (or (eq .Values.ingress.ingressClassName "nginx") (eq .Values.ingress.className "nginx")) }}
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/ssl-protocols: "{{ .Values.ingress.tls.sslProtocols }}"
     nginx.ingress.kubernetes.io/ssl-ciphers: "{{ .Values.ingress.tls.sslCiphers }}"
@@ -30,7 +30,7 @@ spec:
   tls:
   {{- range .Values.ingress.tls.hosts }}
   - hosts:
-    {{- range .hostNames }}
+    {{- range .hosts }}
     - {{ . | quote }}
     {{- end }}
     {{- if .secretName }}
