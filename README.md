@@ -10,7 +10,7 @@ This repository contains the Helm chart that deploys the OpenOps application sta
 - `chart/values.overrides-example.yaml`: Sample overrides file to copy and customize.
 - `chart/values.ci.yaml`: Resource-constrained overlay for CI environments.
 - `chart/values.production.yaml`: Production overlay with externalized dependencies and cloud settings.
-- `chart/templates/`: Kubernetes manifests templated by Helm.
+- `chart/templates/`: Kubernetes manifests templated by Helm (21 files including deployments, services, configmaps, secrets, PVCs, ingress, and helpers).
 
 ## Components
 - **nginx**: Reverse proxy and load balancer exposed via `LoadBalancer`.
@@ -94,9 +94,10 @@ The chart provisions PersistentVolumeClaims for:
 Customize storage classes and sizes via `chart/values.yaml` or your overrides file.
 
 ## Networking
-- The `nginx` service is exposed as a `LoadBalancer` on port 80.
+- The `nginx` service is exposed as a `LoadBalancer` on port 80 by default.
 - All other services use `ClusterIP` for internal communication.
 - The nginx configuration routes traffic to the appropriate backend services.
+- An optional `Ingress` resource can be enabled for environments using an ingress controller instead of a LoadBalancer.
 
 ## Dependencies
 The deployments include health checks and readiness probes so dependent services wait until their prerequisites are available.
