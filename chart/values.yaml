@@ -118,6 +118,15 @@ app:
     limits:
       memory: "2Gi"
       cpu: "1000m"
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
 
 engine:
   name: openops-engine
@@ -133,6 +142,15 @@ engine:
   env:
     OPS_BASE_CODE_DIRECTORY: /tmp/codes
     OPS_SERVER_API_URL: '{{ printf "%s/api/" (include "openops.appServiceUrl" .) }}'
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
 
 tables:
   name: openops-tables
@@ -146,6 +164,15 @@ tables:
     limits:
       memory: "1Gi"
       cpu: "500m"
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
   env:
     BASEROW_PUBLIC_URL: "{{ .Values.openopsEnv.OPS_OPENOPS_TABLES_PUBLIC_URL }}"
     BASEROW_PRIVATE_URL: "{{ .Values.openopsEnv.OPS_OPENOPS_TABLES_API_URL }}"
@@ -185,6 +212,15 @@ analytics:
     limits:
       memory: "2Gi"
       cpu: "1000m"
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
   env:
     ADMIN_PASSWORD: "{{ .Values.openopsEnv.OPS_ANALYTICS_ADMIN_PASSWORD }}"
     POWERUSER_PASSWORD: "{{ .Values.openopsEnv.ANALYTICS_POWERUSER_PASSWORD }}"
@@ -260,6 +296,15 @@ nginx:
     limits:
       memory: "256Mi"
       cpu: "200m"
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
   service:
     port: 80
     type: LoadBalancer

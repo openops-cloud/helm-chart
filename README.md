@@ -10,7 +10,7 @@ This repository contains the Helm chart that deploys the OpenOps application sta
 - `chart/values.overrides-example.yaml`: Sample overrides file to copy and customize.
 - `chart/values.ci.yaml`: Resource-constrained overlay for CI environments.
 - `chart/values.production.yaml`: Production overlay with externalized dependencies and cloud settings.
-- `chart/templates/`: Kubernetes manifests templated by Helm (21 files including deployments, services, configmaps, secrets, PVCs, ingress, and helpers).
+- `chart/templates/`: Kubernetes manifests templated by Helm (31 files including deployments, services, configmaps, secrets, PVCs, ingress, PDBs, HPAs, and helpers).
 
 ## Components
 - **nginx**: Reverse proxy and load balancer exposed via `LoadBalancer`.
@@ -100,7 +100,47 @@ Customize storage classes and sizes via `chart/values.yaml` or your overrides fi
 - An optional `Ingress` resource can be enabled for environments using an ingress controller instead of a LoadBalancer.
 
 ## Dependencies
-The deployments include health checks and readiness probes so dependent services wait until their prerequisites are available.
+The deployments include comprehensive health checks (startup, readiness, and liveness probes) so dependent services wait until their prerequisites are available and Kubernetes can automatically restart unhealthy containers.
+
+## Workload health and resilience
+
+### Health probes
+All services include properly configured health probes:
+- **Startup probes**: For slow-starting services (app, analytics, tables) to give them sufficient time to initialize without being killed by liveness probes.
+- **Readiness probes**: Determine when a pod is ready to receive traffic.
+- **Liveness probes**: Detect and restart unhealthy containers.
+
+### Resource requests and limits
+All services have CPU and memory requests and limits defined to ensure proper scheduling and prevent resource exhaustion:
+- **Requests**: Guaranteed resources for the pod
+- **Limits**: Maximum resources the pod can consume
+
+### Pod Disruption Budgets (PDBs)
+Optional PodDisruptionBudgets protect stateless services during voluntary disruptions (node drains, cluster upgrades):
+```yaml
+app:
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1  # or maxUnavailable: 1
+```
+
+PDBs are available for: app, engine, tables, analytics, nginx.
+
+### Horizontal Pod Autoscaling (HPAs)
+Optional HPAs automatically scale stateless services based on CPU/memory utilization:
+```yaml
+app:
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+```
+
+HPAs are available for: app, engine, tables, analytics, nginx.
+
+**Note**: When HPA is enabled, it controls the replica count. Set appropriate `minReplicas` and ensure resource requests/limits are properly configured for accurate autoscaling metrics.
 
 ## Topology and rollout safeguards
 The chart provides built-in safeguards to avoid single-node concentration and ensure safe rolling updates:

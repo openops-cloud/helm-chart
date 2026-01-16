@@ -37,6 +37,16 @@ spec:
         volumeMounts:
         - name: tables-data
           mountPath: /baserow/data
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - /baserow/backend/docker/docker-entrypoint.sh backend-healthcheck
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 8
+          failureThreshold: 30
         livenessProbe:
           exec:
             command:

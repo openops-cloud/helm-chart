@@ -1,0 +1,18 @@
+{{- if .Values.nginx.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.nginx.name }}-pdb
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "nginx") | nindent 4 }}
+spec:
+  {{- if .Values.nginx.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.nginx.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.nginx.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.nginx.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "nginx") | nindent 6 }}
+{{- end }}

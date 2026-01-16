@@ -6,7 +6,7 @@
 - `/chart/values.overrides-example.yaml`: Reference file that shows how to structure your own overrides file for deployments.
 - `/chart/values.ci.yaml`: Resource-constrained overlay for CI environments.
 - `/chart/values.production.yaml`: Production overlay with externalized dependencies and cloud settings.
-- `/chart/templates/`: Kubernetes manifests rendered by Helm. Each service/component has its own deployment and service files, along with shared helpers in `_helpers.tpl` and secrets/configmaps under `configmap-*.yaml`, `secret-env.yaml`, and `pvc-*.yaml`.
+- `/chart/templates/`: Kubernetes manifests rendered by Helm. Each service/component has its own deployment and service files, along with shared helpers in `_helpers.tpl` and secrets/configmaps under `configmap-*.yaml`, `secret-env.yaml`, and `pvc-*.yaml`. PodDisruptionBudgets (`pdb-*.yaml`) and HorizontalPodAutoscalers (`hpa-*.yaml`) are available for stateless services (app, engine, tables, analytics, nginx) but disabled by default.
 - `/.github/prlint.json`: Pull-request lint configuration (see below) that runs in CI to enforce title/body rules.
 - `/.github/workflows/`: Automation (tests, lint, release) triggered by pushes and pull requests. Update these only when you need to change CI behavior.
 
@@ -30,3 +30,13 @@ The `.github/prlint.json` ruleset runs on every pull request. To avoid CI failur
 - Use the body to explain *what* and *why*, wrapping at ~72 characters per line for readability.
 - Reference relevant issues in the body when closing or relating work (same keywords as PR bodies).
 - Prefer focused commits that touch a single logical change; this keeps review and potential rollbacks simple.
+
+## Workload health and resilience
+All stateless services (app, engine, tables, analytics, nginx) have:
+- **Health probes**: Startup, readiness, and liveness probes configured appropriately for each service
+- **Resource requests and limits**: CPU and memory allocations defined to ensure proper scheduling
+- **Optional PDBs**: PodDisruptionBudgets (disabled by default) to protect against voluntary disruptions
+- **Optional HPAs**: HorizontalPodAutoscalers (disabled by default) for automatic scaling based on CPU/memory metrics
+
+To enable PDBs or HPAs, set `<service>.podDisruptionBudget.enabled: true` or `<service>.autoscaling.enabled: true` in values.yaml or your overrides file.
+

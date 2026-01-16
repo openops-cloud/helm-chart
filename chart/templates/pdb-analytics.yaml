@@ -1,0 +1,18 @@
+{{- if .Values.analytics.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.analytics.name }}-pdb
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "analytics") | nindent 4 }}
+spec:
+  {{- if .Values.analytics.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.analytics.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.analytics.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.analytics.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "analytics") | nindent 6 }}
+{{- end }}

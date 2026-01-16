@@ -1,0 +1,32 @@
+{{- if .Values.tables.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.tables.name }}-hpa
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "tables") | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Values.tables.name }}
+  minReplicas: {{ .Values.tables.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.tables.autoscaling.maxReplicas }}
+  metrics:
+  {{- if .Values.tables.autoscaling.targetCPUUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.tables.autoscaling.targetCPUUtilizationPercentage }}
+  {{- end }}
+  {{- if .Values.tables.autoscaling.targetMemoryUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.tables.autoscaling.targetMemoryUtilizationPercentage }}
+  {{- end }}
+{{- end }}
