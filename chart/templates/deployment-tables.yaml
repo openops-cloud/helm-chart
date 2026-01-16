@@ -6,6 +6,7 @@ metadata:
     {{- include "openops.componentLabels" (dict "root" . "component" "tables") | nindent 4 }}
 spec:
   replicas: {{ .Values.tables.replicas }}
+  {{- include "openops.deploymentStrategy" . | nindent 2 }}
   selector:
     matchLabels:
       {{- include "openops.componentSelectorLabels" (dict "root" . "component" "tables") | nindent 6 }}
@@ -18,6 +19,9 @@ spec:
         checksum/secret-env: {{ . }}
 {{- end }}
     spec:
+      {{- include "openops.priorityClassName" . | nindent 6 }}
+      {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "tables") | nindent 6 }}
+      {{- include "openops.affinity" (dict "root" . "component" "tables") | nindent 6 }}
       containers:
       - name: {{ .Values.tables.name }}
         image: "{{ .Values.image.repository }}/{{ .Values.tables.image }}:{{ .Values.tables.tag }}"
