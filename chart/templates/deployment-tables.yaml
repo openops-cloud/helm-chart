@@ -57,7 +57,16 @@ spec:
         resources:
 {{ toYaml . | nindent 10 }}
 {{- end }}
-        {{- include "openops.startupProbe" (dict "path" "/api/health/" "port" 80) | nindent 8 }}
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - /baserow/backend/docker/docker-entrypoint.sh backend-healthcheck
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 8
+          failureThreshold: 30
         readinessProbe:
           exec:
             command:
