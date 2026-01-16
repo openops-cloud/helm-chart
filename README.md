@@ -36,20 +36,56 @@ This repository contains the Helm chart that deploys the OpenOps application sta
    ```
 
 ## Secret hardening
-- All sensitive environment keys are rendered through a shared Kubernetes `Secret` so containers never embed credentials in-line.
-- Control how that secret is managed via the `secretEnv` block (disable creation, mark it `immutable`, or attach compliance labels/annotations).
-- When `secretEnv.existingSecret` is set (optionally with `create: false`), the chart references the externally managed secret, which is recommended for SOPS, ExternalSecrets, or Vault-driven workflows.
-- Values added under `secretEnv.stringData` stay in plain text for readability, while entries under `secretEnv.data` are templated and base64-encoded by the chart before being stored.
-- Workloads automatically receive a `checksum/secret-env` pod annotation so any change to the secret triggers a rolling restart.
+- Secrets have been removed from default values and must be provided per-install for security.
+- Each workload now has its own dedicated Kubernetes `Secret` for better isolation and security (app, engine, tables, analytics, postgres).
+- Control secret management via the `secretEnv` block with per-workload configuration or use a shared secret (legacy).
+- Set `create: false` and specify `existingSecret` to reference externally managed secrets (SOPS, External Secrets Operator, Vault, Sealed Secrets).
+- Values added under `secretEnv.<component>.stringData` stay in plain text for readability, while entries under `secretEnv.<component>.data` are base64-encoded.
+- Workloads automatically receive a `checksum/secret-env` pod annotation so any change to their secret triggers a rolling restart.
 
-Example override:
+**Per-workload secrets (recommended):**
 ```yaml
 secretEnv:
-  create: false
-  existingSecret: openops-env
-  immutable: true
-  annotations:
-    secrets.kubernetes.io/managed-by: external
+  app:
+    stringData:
+      OPS_ENCRYPTION_KEY: your-32-char-encryption-key-here
+      OPS_JWT_SECRET: your-jwt-secret-here
+      OPS_OPENOPS_ADMIN_PASSWORD: your-admin-password
+  
+  tables:
+    stringData:
+      SECRET_KEY: your-32-char-encryption-key-here
+      BASEROW_JWT_SIGNING_KEY: your-jwt-secret-here
+      BASEROW_ADMIN_PASSWORD: your-admin-password
+      DATABASE_PASSWORD: your-database-password
+  
+  analytics:
+    stringData:
+      ADMIN_PASSWORD: your-analytics-admin-password
+      POWERUSER_PASSWORD: your-analytics-poweruser-password
+      DATABASE_PASSWORD: your-database-password
+      SUPERSET_SECRET_KEY: your-32-char-encryption-key-here
+  
+  postgres:
+    stringData:
+      POSTGRES_PASSWORD: your-database-password
+```
+
+**External secrets (e.g., External Secrets Operator):**
+```yaml
+secretEnv:
+  app:
+    create: false
+    existingSecret: openops-app-env
+  tables:
+    create: false
+    existingSecret: openops-tables-env
+  analytics:
+    create: false
+    existingSecret: openops-analytics-env
+  postgres:
+    create: false
+    existingSecret: openops-postgres-env
 ```
 
 ## Multi-environment deployments

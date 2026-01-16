@@ -45,10 +45,11 @@ openopsEnv:
   OPS_ANALYTICS_VERSION: "{{ .Values.analytics.tag }}"
 
   # Authentication
-  OPS_ENCRYPTION_KEY: abcdef123456789abcdef123456789ab
-  OPS_JWT_SECRET: please-change-this-secret
+  # REQUIRED: Set these via secretEnv in your values override file
+  OPS_ENCRYPTION_KEY: ""  # Must be exactly 32 characters
+  OPS_JWT_SECRET: ""
   OPS_OPENOPS_ADMIN_EMAIL: admin@openops.com
-  OPS_OPENOPS_ADMIN_PASSWORD: please-change-this-password-1
+  OPS_OPENOPS_ADMIN_PASSWORD: ""
 
   # Telemetry
   OPS_LOG_LEVEL: info
@@ -71,7 +72,7 @@ openopsEnv:
   OPS_POSTGRES_HOST: '{{ include "openops.postgresHost" . }}'
   OPS_POSTGRES_PORT: '{{ include "openops.postgresPort" . }}'
   OPS_POSTGRES_USERNAME: postgres
-  OPS_POSTGRES_PASSWORD: please-change-this-password-1
+  OPS_POSTGRES_PASSWORD: ""  # REQUIRED: Set via secretEnv
 
   # Tables
   OPS_OPENOPS_TABLES_DATABASE_NAME: tables
@@ -85,8 +86,8 @@ openopsEnv:
   # Analytics
   OPS_ANALYTICS_PUBLIC_URL: "{{ .Values.openopsEnv.OPS_PUBLIC_URL }}"
   OPS_ANALYTICS_PRIVATE_URL: '{{ include "openops.analyticsServiceUrl" . }}'
-  OPS_ANALYTICS_ADMIN_PASSWORD: please-change-this-password-1
-  ANALYTICS_POWERUSER_PASSWORD: please-change-this-password-1
+  OPS_ANALYTICS_ADMIN_PASSWORD: ""  # REQUIRED: Set via secretEnv
+  ANALYTICS_POWERUSER_PASSWORD: ""  # REQUIRED: Set via secretEnv
   ANALYTICS_ALLOW_ADHOC_SUBQUERY: "true"
 
   # AWS
@@ -97,8 +98,13 @@ openopsEnv:
   OPS_SLACK_APP_SIGNING_SECRET: ""
   OPS_SLACK_ENABLE_INTERACTIONS: "true"
 
+# Secret management configuration
+# Each workload can have its own secret for better isolation and security.
+# Set create: false and specify existingSecret to use externally managed secrets
+# (e.g., sealed-secrets, external-secrets, SOPS, Vault).
 secretEnv:
-  create: true
+  # Shared secret (deprecated - use per-workload secrets for better isolation)
+  create: false
   existingSecret: ""
   type: Opaque
   immutable: false
@@ -106,6 +112,57 @@ secretEnv:
   annotations: {}
   stringData: {}
   data: {}
+  
+  # Per-workload secrets for better security isolation
+  app:
+    create: true
+    existingSecret: ""
+    type: Opaque
+    immutable: false
+    labels: {}
+    annotations: {}
+    stringData: {}
+    data: {}
+  
+  engine:
+    create: true
+    existingSecret: ""
+    type: Opaque
+    immutable: false
+    labels: {}
+    annotations: {}
+    stringData: {}
+    data: {}
+  
+  tables:
+    create: true
+    existingSecret: ""
+    type: Opaque
+    immutable: false
+    labels: {}
+    annotations: {}
+    stringData: {}
+    data: {}
+  
+  analytics:
+    create: true
+    existingSecret: ""
+    type: Opaque
+    immutable: false
+    labels: {}
+    annotations: {}
+    stringData: {}
+    data: {}
+  
+  postgres:
+    create: true
+    existingSecret: ""
+    type: Opaque
+    immutable: false
+    labels: {}
+    annotations: {}
+    stringData: {}
+    data: {}
 
 app:
   name: openops-app
@@ -214,7 +271,7 @@ postgres:
   env:
     maxConnections: "300"
     POSTGRES_USER: "{{ .Values.openopsEnv.OPS_POSTGRES_USERNAME }}"
-    POSTGRES_PASSWORD: "{{ .Values.openopsEnv.OPS_POSTGRES_PASSWORD }}"
+    POSTGRES_PASSWORD: ""  # REQUIRED: Set via secretEnv.postgres
     POSTGRES_DB: "{{ .Values.openopsEnv.OPS_POSTGRES_DATABASE }}"
   storage:
     size: 20Gi

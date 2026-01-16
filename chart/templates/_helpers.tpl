@@ -131,14 +131,27 @@ Check if nginx ingress controller is being used
 
 {{/*
 Secret name used to store sensitive environment variables.
+Can be component-specific or shared.
+Expected dict: { "root": $, "component": "app" } or just root context
 */}}
 {{- define "openops.secretName" -}}
+{{- if .component -}}
+{{- $componentSecretConfig := index .root.Values.secretEnv .component | default (dict) -}}
+{{- $existing := default "" $componentSecretConfig.existingSecret -}}
+{{- if $existing -}}
+{{- $existing -}}
+{{- else -}}
+{{- printf "%s-%s-env" (include "openops.fullname" .root) .component -}}
+{{- end -}}
+{{- else -}}
+{{- /* Legacy shared secret support */ -}}
 {{- $secretConfig := default (dict) .Values.secretEnv -}}
 {{- $existing := default "" $secretConfig.existingSecret -}}
 {{- if $existing -}}
 {{- $existing -}}
 {{- else -}}
 {{- printf "%s-env" (include "openops.fullname" .) -}}
+{{- end -}}
 {{- end -}}
 {{- end }}
 
@@ -155,18 +168,19 @@ false
 {{- end }}
 
 {{/*
-Render a single environment variable, sourcing secrets from the shared secret when needed.
-Expected dict: { "root": $, "key": "ENV", "value": "value" }
+Render a single environment variable, sourcing secrets from component-specific or shared secret when needed.
+Expected dict: { "root": $, "key": "ENV", "value": "value", "component": "app" }
 */}}
 {{- define "openops.envVar" -}}
 {{- $root := .root -}}
 {{- $key := .key -}}
 {{- $value := .value -}}
+{{- $component := .component | default "" -}}
 {{- if eq (include "openops.isSecretKey" $key) "true" -}}
 - name: {{ $key }}
   valueFrom:
     secretKeyRef:
-      name: {{ include "openops.secretName" $root }}
+      name: {{ include "openops.secretName" (dict "root" $root "component" $component) }}
       key: {{ $key }}
 {{- else -}}
 - name: {{ $key }}
@@ -176,14 +190,15 @@ Expected dict: { "root": $, "key": "ENV", "value": "value" }
 
 {{/*
 Render environment variables from a map using openops.envVar.
-Expected dict: { "root": $, "env": dict }
+Expected dict: { "root": $, "env": dict, "component": "app" }
 */}}
 {{- define "openops.renderEnv" -}}
 {{- $root := .root -}}
 {{- $env := .env -}}
+{{- $component := .component | default "" -}}
 {{- if $env }}
 {{- range $k, $v := $env }}
-{{ include "openops.envVar" (dict "root" $root "key" $k "value" $v) }}
+{{ include "openops.envVar" (dict "root" $root "key" $k "value" $v "component" $component) }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -258,24 +273,35 @@ priorityClassName: {{ .Values.global.priorityClassName }}
 
 {{/*
 Checksum of the secret data to trigger pod rollouts when sensitive data changes.
-Only compute the checksum when this chart actually creates the secret, i.e., when
-.Values.secretEnv.create is true and .Values.secretEnv.existingSecret is not set.
-Returns empty string when using an external secret to avoid circular dependencies.
+Expected dict: { "root": $, "component": "app" } or just root context for legacy shared secret
 */}}
 {{- define "openops.secretChecksum" -}}
-{{- if and .Values.secretEnv (default true .Values.secretEnv.create) (not .Values.secretEnv.existingSecret) -}}
 {{- $root := . -}}
+{{- $component := "" -}}
+{{- if .component -}}
+{{- $component = .component -}}
+{{- $root = .root -}}
+{{- end -}}
+{{- $secretSettings := dict -}}
+{{- if $component -}}
+{{- $secretSettings = index $root.Values.secretEnv $component | default (dict) -}}
+{{- else -}}
+{{- $secretSettings = $root.Values.secretEnv | default (dict) -}}
+{{- end -}}
+{{- $create := default true $secretSettings.create -}}
+{{- $existingSecret := default "" $secretSettings.existingSecret -}}
+{{- if and $create (not $existingSecret) -}}
 {{- $secretData := dict -}}
-{{- if .Values.secretEnv.data -}}
+{{- if $secretSettings.data -}}
 {{- $data := dict -}}
-{{- range $k, $v := .Values.secretEnv.data }}
+{{- range $k, $v := $secretSettings.data }}
 {{- $_ := set $data $k (tpl (tpl $v $root) $root | b64enc) -}}
 {{- end -}}
 {{- $_ := set $secretData "data" $data -}}
 {{- end -}}
-{{- if .Values.secretEnv.stringData -}}
+{{- if $secretSettings.stringData -}}
 {{- $renderedStringData := dict -}}
-{{- range $k, $v := .Values.secretEnv.stringData }}
+{{- range $k, $v := $secretSettings.stringData }}
 {{- $_ := set $renderedStringData $k (tpl (tpl $v $root) $root) -}}
 {{- end }}
 {{- $_ := set $secretData "stringData" $renderedStringData -}}

@@ -5,12 +5,43 @@
 openopsEnv:
   OPS_PUBLIC_URL: "https://openops.example.com"
   OPS_OPENOPS_ADMIN_EMAIL: openops@example.com
-  OPS_OPENOPS_ADMIN_PASSWORD: 9wqhK7jehmxAQlre
-  OPS_ENCRYPTION_KEY: 7de996f020438444dc2c79e9b843805d
-  OPS_JWT_SECRET: M72yCOp9riLjIDws
-  OPS_POSTGRES_PASSWORD: WZKUM0tSvFC6VWai
-  OPS_ANALYTICS_ADMIN_PASSWORD: 7YO7YEVRaECPQimI
-  ANALYTICS_POWERUSER_PASSWORD: v5vIvwhdBDWwx4el
+
+# Secret management - provide secrets via per-workload configuration
+secretEnv:
+  # Shared secret configuration (legacy - use per-workload for better isolation)
+  # create: false
+  # existingSecret: ""
+  
+  # Per-workload secrets for better security isolation
+  app:
+    stringData:
+      OPS_ENCRYPTION_KEY: 7de996f020438444dc2c79e9b843805d
+      OPS_JWT_SECRET: M72yCOp9riLjIDws
+      OPS_OPENOPS_ADMIN_PASSWORD: 9wqhK7jehmxAQlre
+  
+  engine:
+    stringData:
+      OPS_ENCRYPTION_KEY: 7de996f020438444dc2c79e9b843805d
+      OPS_JWT_SECRET: M72yCOp9riLjIDws
+      OPS_OPENOPS_ADMIN_PASSWORD: 9wqhK7jehmxAQlre
+  
+  tables:
+    stringData:
+      SECRET_KEY: 7de996f020438444dc2c79e9b843805d
+      BASEROW_JWT_SIGNING_KEY: M72yCOp9riLjIDws
+      BASEROW_ADMIN_PASSWORD: 9wqhK7jehmxAQlre
+      DATABASE_PASSWORD: WZKUM0tSvFC6VWai
+  
+  analytics:
+    stringData:
+      ADMIN_PASSWORD: 7YO7YEVRaECPQimI
+      POWERUSER_PASSWORD: v5vIvwhdBDWwx4el
+      DATABASE_PASSWORD: WZKUM0tSvFC6VWai
+      SUPERSET_SECRET_KEY: 7de996f020438444dc2c79e9b843805d
+  
+  postgres:
+    stringData:
+      POSTGRES_PASSWORD: WZKUM0tSvFC6VWai
 
 # Tables needs more memory during initial migrations
 tables:
