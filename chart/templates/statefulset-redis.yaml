@@ -4,6 +4,13 @@ metadata:
   name: {{ .Values.redis.name }}
   labels:
     {{- include "openops.componentLabels" (dict "root" . "component" "redis") | nindent 4 }}
+    {{- with .Values.global.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.global.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   serviceName: {{ .Values.redis.name }}-headless
   replicas: {{ .Values.redis.replicas }}
@@ -21,23 +28,34 @@ spec:
     metadata:
       labels:
         {{- include "openops.componentSelectorLabels" (dict "root" . "component" "redis") | nindent 8 }}
-      {{- with .Values.redis.backup.annotations }}
-      annotations:
+        {{- with .Values.global.commonLabels }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
+      annotations:
+        {{- include "openops.prometheusAnnotations" (dict "root" . "component" "redis") | nindent 8 }}
+        {{- with .Values.redis.backup.annotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.global.commonAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
+      serviceAccountName: {{ include "openops.serviceAccountName" (dict "root" . "component" "redis") }}
+      {{- include "openops.imagePullSecrets" . | nindent 6 }}
+      {{- include "openops.podSecurityContext" (dict "root" . "component" "redis") | nindent 6 }}
       {{- include "openops.priorityClassName" . | nindent 6 }}
+      {{- include "openops.terminationGracePeriodSeconds" . | nindent 6 }}
       {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "redis") | nindent 6 }}
-      {{- include "openops.affinity" (dict "root" . "component" "redis") | nindent 6 }}
-      {{- if .Values.redis.securityContext.enabled }}
-      securityContext:
-        {{- omit .Values.redis.securityContext "enabled" | toYaml | nindent 8 }}
-      {{- end }}
+      {{- include "openops.componentAffinity" (dict "root" . "component" "redis") | nindent 6 }}
+      {{- include "openops.nodeSelector" . | nindent 6 }}
+      {{- include "openops.tolerations" . | nindent 6 }}
+      {{- include "openops.initContainers" (dict "root" . "component" "redis") | nindent 6 }}
       containers:
       - name: {{ .Values.redis.name }}
         image: {{ .Values.redis.image }}:{{ .Values.redis.tag }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
-        {{- if or .Values.redis.auth.enabled .Values.redis.tls.enabled }}
+        {{- include "openops.containerSecurityContext" (dict "root" .) | nindent 8 }}
+        {{- if or .Values.redis.auth.enabled .Values.redis.tls.enabled .Values.redis.persistence.enabled }}
         command:
         - redis-server
         {{- if .Values.redis.auth.enabled }}
@@ -60,8 +78,10 @@ spec:
         - --tls-auth-clients
         - {{ .Values.redis.tls.authClients | default "no" | quote }}
         {{- end }}
+        {{- if .Values.redis.persistence.enabled }}
         - --appendonly
         - "yes"
+        {{- end }}
         {{- end }}
         env:
         {{- if .Values.redis.auth.enabled }}
@@ -78,29 +98,6 @@ spec:
         resources:
 {{ toYaml . | nindent 10 }}
 {{- end }}
-        volumeMounts:
-        - name: data
-          mountPath: /data
-        {{- if .Values.redis.tls.enabled }}
-        - name: redis-tls
-          mountPath: /etc/redis/certs
-          readOnly: true
-        {{- end }}
-        livenessProbe:
-          exec:
-            command:
-            {{- if .Values.redis.auth.enabled }}
-            - sh
-            - -c
-            - export REDISCLI_AUTH=$REDIS_PASSWORD && redis-cli ping
-            {{- else }}
-            - redis-cli
-            - ping
-            {{- end }}
-          initialDelaySeconds: 30
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
         readinessProbe:
           exec:
             command:
@@ -116,6 +113,30 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 3
+        livenessProbe:
+          exec:
+            command:
+            {{- if .Values.redis.auth.enabled }}
+            - sh
+            - -c
+            - export REDISCLI_AUTH=$REDIS_PASSWORD && redis-cli ping
+            {{- else }}
+            - redis-cli
+            - ping
+            {{- end }}
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        {{- include "openops.lifecyclePreStop" . | nindent 8 }}
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        {{- if .Values.redis.tls.enabled }}
+        - name: redis-tls
+          mountPath: /etc/redis/certs
+          readOnly: true
+        {{- end }}
       volumes:
       {{- if .Values.redis.tls.enabled }}
       - name: redis-tls

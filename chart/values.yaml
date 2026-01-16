@@ -1,6 +1,47 @@
 global:
   version: "0.6.14"
 
+  # Secret validation - enforces that secrets are set before deployment
+  # Set to false for local development/testing
+  validateSecrets: true
+
+  # Image pull secrets for private registries
+  imagePullSecrets: []
+  # Example: - name: registry-credentials
+
+  # Common labels and annotations for all resources
+  commonLabels: {}
+  commonAnnotations: {}
+
+  # Security context for all pods (can be overridden per component)
+  securityContext:
+    enabled: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+  # Container security context (can be overridden per component)
+  containerSecurityContext:
+    enabled: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false  # Some apps need writable filesystem
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+
+  # Node selector for scheduling
+  nodeSelector: {}
+  
+  # Tolerations for taints
+  tolerations: []
+
+  # Graceful shutdown configuration
+  terminationGracePeriodSeconds: 60
+
   # Deployment strategy for rolling updates
   strategy:
     type: RollingUpdate
@@ -45,10 +86,13 @@ openopsEnv:
   OPS_ANALYTICS_VERSION: "{{ .Values.analytics.tag }}"
 
   # Authentication
-  OPS_ENCRYPTION_KEY: abcdef123456789abcdef123456789ab
-  OPS_JWT_SECRET: please-change-this-secret
+  # WARNING: These default values MUST be changed for any deployment
+  # Generate secure random values using: openssl rand -hex 32
+  # For minikube/local development ONLY - never use in production
+  OPS_ENCRYPTION_KEY: ""  # 32-byte hex string required
+  OPS_JWT_SECRET: ""      # Random secret required
   OPS_OPENOPS_ADMIN_EMAIL: admin@openops.com
-  OPS_OPENOPS_ADMIN_PASSWORD: please-change-this-password-1
+  OPS_OPENOPS_ADMIN_PASSWORD: ""  # Strong password required
 
   # Telemetry
   OPS_LOG_LEVEL: info
@@ -71,7 +115,7 @@ openopsEnv:
   OPS_POSTGRES_HOST: '{{ include "openops.postgresHost" . }}'
   OPS_POSTGRES_PORT: '{{ include "openops.postgresPort" . }}'
   OPS_POSTGRES_USERNAME: postgres
-  OPS_POSTGRES_PASSWORD: please-change-this-password-1
+  OPS_POSTGRES_PASSWORD: ""  # Strong password required
 
   # Tables
   OPS_OPENOPS_TABLES_DATABASE_NAME: tables
@@ -85,8 +129,8 @@ openopsEnv:
   # Analytics
   OPS_ANALYTICS_PUBLIC_URL: "{{ .Values.openopsEnv.OPS_PUBLIC_URL }}"
   OPS_ANALYTICS_PRIVATE_URL: '{{ include "openops.analyticsServiceUrl" . }}'
-  OPS_ANALYTICS_ADMIN_PASSWORD: please-change-this-password-1
-  ANALYTICS_POWERUSER_PASSWORD: please-change-this-password-1
+  OPS_ANALYTICS_ADMIN_PASSWORD: ""  # Strong password required
+  ANALYTICS_POWERUSER_PASSWORD: ""  # Strong password required
   ANALYTICS_ALLOW_ADHOC_SUBQUERY: "true"
 
   # AWS
@@ -118,6 +162,29 @@ app:
     limits:
       memory: "2Gi"
       cpu: "1000m"
+  # Pod Disruption Budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1  # Ensure at least 1 pod is available during disruptions
+  # Horizontal Pod Autoscaler
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  # Init containers (optional)
+  initContainers: []
+  # Service Account
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  # Prometheus metrics
+  metrics:
+    enabled: true
+    port: 8080
+    path: /metrics
 
 engine:
   name: openops-engine
@@ -130,6 +197,29 @@ engine:
     limits:
       memory: "1Gi"
       cpu: "500m"
+  # Pod Disruption Budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  # Horizontal Pod Autoscaler
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  # Init containers (optional)
+  initContainers: []
+  # Service Account
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  # Prometheus metrics
+  metrics:
+    enabled: true
+    port: 8080
+    path: /metrics
   env:
     OPS_BASE_CODE_DIRECTORY: /tmp/codes
     OPS_SERVER_API_URL: '{{ printf "%s/api/" (include "openops.appServiceUrl" .) }}'
@@ -146,6 +236,29 @@ tables:
     limits:
       memory: "1Gi"
       cpu: "500m"
+  # Pod Disruption Budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  # Horizontal Pod Autoscaler
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  # Init containers (optional)
+  initContainers: []
+  # Service Account
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  # Prometheus metrics
+  metrics:
+    enabled: true
+    port: 80
+    path: /api/health/
   env:
     BASEROW_PUBLIC_URL: "{{ .Values.openopsEnv.OPS_OPENOPS_TABLES_PUBLIC_URL }}"
     BASEROW_PRIVATE_URL: "{{ .Values.openopsEnv.OPS_OPENOPS_TABLES_API_URL }}"
@@ -185,6 +298,29 @@ analytics:
     limits:
       memory: "2Gi"
       cpu: "1000m"
+  # Pod Disruption Budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  # Horizontal Pod Autoscaler
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  # Init containers (optional)
+  initContainers: []
+  # Service Account
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  # Prometheus metrics
+  metrics:
+    enabled: true
+    port: 8088
+    path: /health
   env:
     ADMIN_PASSWORD: "{{ .Values.openopsEnv.OPS_ANALYTICS_ADMIN_PASSWORD }}"
     POWERUSER_PASSWORD: "{{ .Values.openopsEnv.ANALYTICS_POWERUSER_PASSWORD }}"
@@ -218,6 +354,24 @@ postgres:
     limits:
       memory: "1Gi"
       cpu: "500m"
+  # Anti-affinity to prevent co-location with other stateful components
+  affinity:
+    enabled: true
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: [postgres, redis, tables]
+            topologyKey: kubernetes.io/hostname
+  # Service Account
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
   env:
     maxConnections: "300"
     POSTGRES_USER: "{{ .Values.openopsEnv.OPS_POSTGRES_USERNAME }}"
@@ -241,7 +395,7 @@ postgres:
       # post.hook.backup.velero.io/command: '["/bin/bash", "-c", "rm -f /var/lib/postgresql/data/backup.sql"]'
   # Pod security context
   securityContext:
-    enabled: false
+    enabled: true  # Enable by default for security
     fsGroup: 999  # Matches postgres user UID/GID in postgres:18.1 image
     runAsUser: 999
     runAsNonRoot: true
@@ -277,6 +431,30 @@ redis:
     limits:
       memory: "512Mi"
       cpu: "200m"
+  # Anti-affinity to prevent co-location with other stateful components
+  affinity:
+    enabled: true
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: [postgres, redis, tables]
+            topologyKey: kubernetes.io/hostname
+  # Service Account
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  # Redis persistence configuration
+  persistence:
+    enabled: true
+    appendonly: "yes"
+    appendfsync: "everysec"
+    save: "900 1 300 10 60 10000"  # RDB snapshots
   # Authentication configuration
   auth:
     enabled: false
@@ -295,7 +473,7 @@ redis:
       # pre.hook.backup.velero.io/command: '["/bin/sh", "-c", "redis-cli BGSAVE"]'
   # Pod security context
   securityContext:
-    enabled: false
+    enabled: true  # Enable by default for security
     fsGroup: 999  # Matches redis user UID/GID in redis:7.4.0 image
     runAsUser: 999
     runAsNonRoot: true
@@ -324,6 +502,37 @@ nginx:
     limits:
       memory: "256Mi"
       cpu: "200m"
+  # Pod Disruption Budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  # Horizontal Pod Autoscaler
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  # Service Account
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  # Security headers and rate limiting
+  securityHeaders:
+    enabled: true
+    xContentTypeOptions: "nosniff"
+    xFrameOptions: "SAMEORIGIN"
+    contentSecurityPolicy: "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:;"
+    permissionsPolicy: "geolocation=(), microphone=(), camera=()"
+    referrerPolicy: "strict-origin-when-cross-origin"
+  rateLimiting:
+    enabled: false  # Disabled by default for local development
+    zone: "api:10m"
+    rate: "10r/s"
+    burst: 20
+    connZone: "addr:10m"
+    connLimit: 10
   service:
     port: 80
     type: LoadBalancer
@@ -360,3 +569,29 @@ ingress:
     hstsMaxAge: "31536000"
     hstsIncludeSubdomains: "true"
     hstsPreload: "true"
+
+# Network Policies for pod-to-pod communication restrictions
+networkPolicy:
+  enabled: false  # Disabled by default for ease of local setup
+  # When enabled, creates network policies that restrict traffic between components
+  # based on the principle of least privilege
+
+# Resource limits and quotas
+limitRange:
+  enabled: false  # Optional: enforce minimum/maximum resource limits
+  limits:
+    - max:
+        cpu: "2"
+        memory: "4Gi"
+      min:
+        cpu: "100m"
+        memory: "128Mi"
+      type: Container
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: false  # Optional: create ServiceMonitor for Prometheus
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+  # Example: release: prometheus

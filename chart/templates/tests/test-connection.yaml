@@ -1,0 +1,19 @@
+{{/*
+Test connection to app health endpoint
+*/}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "openops.fullname" . }}-test-connection"
+  labels:
+    {{- include "openops.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: wget
+      image: busybox:latest
+      command: ['wget']
+      args: ['--spider', '--timeout=10', '{{ .Values.app.name }}:80/api/v1/health']

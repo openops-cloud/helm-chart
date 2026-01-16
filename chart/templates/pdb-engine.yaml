@@ -1,0 +1,16 @@
+{{- if .Values.engine.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.engine.name }}-pdb
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "engine") | nindent 4 }}
+    {{- with .Values.global.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  minAvailable: {{ .Values.engine.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "engine") | nindent 6 }}
+{{- end }}

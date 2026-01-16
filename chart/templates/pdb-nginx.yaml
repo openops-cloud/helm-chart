@@ -1,0 +1,16 @@
+{{- if .Values.nginx.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.nginx.name }}-pdb
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "nginx") | nindent 4 }}
+    {{- with .Values.global.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  minAvailable: {{ .Values.nginx.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "nginx") | nindent 6 }}
+{{- end }}

@@ -4,6 +4,13 @@ metadata:
   name: {{ .Values.postgres.name }}
   labels:
     {{- include "openops.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
+    {{- with .Values.global.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.global.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   serviceName: {{ .Values.postgres.name }}-headless
   replicas: {{ .Values.postgres.replicas }}
@@ -21,25 +28,36 @@ spec:
     metadata:
       labels:
         {{- include "openops.componentSelectorLabels" (dict "root" . "component" "postgres") | nindent 8 }}
-{{ with include "openops.secretChecksum" . }}
-      annotations:
-        checksum/secret-env: {{ . }}
-        {{- with $.Values.postgres.backup.annotations }}
+        {{- with .Values.global.commonLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-{{- end }}
+      annotations:
+        {{- include "openops.prometheusAnnotations" (dict "root" . "component" "postgres") | nindent 8 }}
+        {{- with include "openops.secretChecksum" . }}
+        checksum/secret-env: {{ . }}
+        {{- end }}
+        {{- with .Values.postgres.backup.annotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.global.commonAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
+      serviceAccountName: {{ include "openops.serviceAccountName" (dict "root" . "component" "postgres") }}
+      {{- include "openops.imagePullSecrets" . | nindent 6 }}
+      {{- include "openops.podSecurityContext" (dict "root" . "component" "postgres") | nindent 6 }}
       {{- include "openops.priorityClassName" . | nindent 6 }}
+      {{- include "openops.terminationGracePeriodSeconds" . | nindent 6 }}
       {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "postgres") | nindent 6 }}
-      {{- include "openops.affinity" (dict "root" . "component" "postgres") | nindent 6 }}
-      {{- if .Values.postgres.securityContext.enabled }}
-      securityContext:
-        {{- omit .Values.postgres.securityContext "enabled" | toYaml | nindent 8 }}
-      {{- end }}
+      {{- include "openops.componentAffinity" (dict "root" . "component" "postgres") | nindent 6 }}
+      {{- include "openops.nodeSelector" . | nindent 6 }}
+      {{- include "openops.tolerations" . | nindent 6 }}
+      {{- include "openops.initContainers" (dict "root" . "component" "postgres") | nindent 6 }}
       containers:
       - name: {{ .Values.postgres.name }}
         image: {{ .Values.postgres.image }}:{{ .Values.postgres.tag }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- include "openops.containerSecurityContext" (dict "root" .) | nindent 8 }}
         args:
         - postgres
         - -c
@@ -71,6 +89,27 @@ spec:
         resources:
 {{ toYaml . | nindent 10 }}
 {{- end }}
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+        {{- include "openops.lifecyclePreStop" . | nindent 8 }}
         volumeMounts:
         - name: data
           mountPath: /var/lib/postgresql/data
@@ -87,26 +126,6 @@ spec:
           mountPath: /etc/postgresql/certs
           readOnly: true
         {{- end }}
-        livenessProbe:
-          exec:
-            command:
-            - /bin/sh
-            - -c
-            - pg_isready -U $POSTGRES_USER
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 5
-        readinessProbe:
-          exec:
-            command:
-            - /bin/sh
-            - -c
-            - pg_isready -U $POSTGRES_USER
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 5
       volumes:
       - name: init-script
         configMap:

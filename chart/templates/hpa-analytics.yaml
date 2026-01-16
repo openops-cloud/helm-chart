@@ -1,0 +1,35 @@
+{{- if .Values.analytics.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.analytics.name }}-hpa
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "analytics") | nindent 4 }}
+    {{- with .Values.global.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Values.analytics.name }}
+  minReplicas: {{ .Values.analytics.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.analytics.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.analytics.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.analytics.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.analytics.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.analytics.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

@@ -6,18 +6,41 @@ metadata:
     {{- include "openops.componentLabels" (dict "root" . "component" "nginx") | nindent 4 }}
 data:
   nginx.gateway.conf: |
+    {{- if .Values.nginx.rateLimiting.enabled }}
+    # Rate limiting zones
+    limit_req_zone $binary_remote_addr zone:{{ .Values.nginx.rateLimiting.zone }} rate={{ .Values.nginx.rateLimiting.rate }};
+    limit_conn_zone $binary_remote_addr zone:{{ .Values.nginx.rateLimiting.connZone }};
+    {{- end }}
+
     server {
         listen 80;
         server_name openops;
 
         client_max_body_size 10m;
-        client_body_buffer_size 1K;
+        client_body_buffer_size 128k;
         client_header_buffer_size 1k;
         large_client_header_buffers 4 16k;
-        add_header X-XSS-Protection "1; mode=block";
+        
+        # Security headers
+        {{- if .Values.nginx.securityHeaders.enabled }}
+        add_header X-Content-Type-Options "{{ .Values.nginx.securityHeaders.xContentTypeOptions }}" always;
+        add_header X-Frame-Options "{{ .Values.nginx.securityHeaders.xFrameOptions }}" always;
+        add_header Content-Security-Policy "{{ .Values.nginx.securityHeaders.contentSecurityPolicy }}" always;
+        add_header Permissions-Policy "{{ .Values.nginx.securityHeaders.permissionsPolicy }}" always;
+        add_header Referrer-Policy "{{ .Values.nginx.securityHeaders.referrerPolicy }}" always;
+        {{- else }}
         add_header Referrer-Policy "no-referrer-when-downgrade";
+        {{- end }}
+        add_header X-XSS-Protection "1; mode=block" always;
+        
         ssi off;
         server_tokens off;
+
+        {{- if .Values.nginx.rateLimiting.enabled }}
+        # Apply rate limiting
+        limit_req zone={{ (split ":" .Values.nginx.rateLimiting.zone)._0 }} burst={{ .Values.nginx.rateLimiting.burst }} nodelay;
+        limit_conn {{ (split ":" .Values.nginx.rateLimiting.connZone)._0 }} {{ .Values.nginx.rateLimiting.connLimit }};
+        {{- end }}
 
         location / {
             proxy_pass {{ include "openops.appServiceUrl" . }};
