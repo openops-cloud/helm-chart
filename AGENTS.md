@@ -10,6 +10,8 @@
 - `/chart/templates/servicemonitor.yaml`: Prometheus ServiceMonitor resources for metrics collection (enabled via `observability.metrics.enabled`).
 - `/chart/templates/test-health.yaml`: Helm test hooks for health endpoint validation.
 - `/chart/templates/test-database.yaml`: Helm test hooks for database readiness checks.
+- `/chart/templates/NOTES.txt`: Helm installation notes displayed after deployment with important warnings and next steps.
+- `/README.md`: Comprehensive documentation covering installation, configuration, operational toggles (secrets, TLS, scaling, production hardening), and multi-environment deployments.
 - `/.github/prlint.json`: Pull-request lint configuration (see below) that runs in CI to enforce title/body rules.
 - `/.github/workflows/`: Automation (tests, lint, release) triggered by pushes and pull requests. Update these only when you need to change CI behavior.
 

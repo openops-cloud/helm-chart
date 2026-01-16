@@ -383,7 +383,7 @@ observability:
         port: 80
         path: /api/v1/health
       engine:
-        enabled: true
+        enabled: false
         port: 3005
         path: /health
       tables:
@@ -429,7 +429,7 @@ observability:
         enabled: true
         endpoint: /api/v1/health
       engine:
-        enabled: true
+        enabled: false
         endpoint: /health
       tables:
         enabled: true

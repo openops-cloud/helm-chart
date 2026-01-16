@@ -1,0 +1,74 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
+
+To get started:
+
+{{- if .Values.ingress.enabled }}
+
+1. Access the application at:
+{{- range .Values.ingress.hosts }}
+   https://{{ .host }}
+{{- end }}
+{{- else }}
+
+1. Get the external IP of the nginx service:
+   
+   kubectl get svc {{ .Values.nginx.name }} -n {{ .Release.Namespace }}
+
+2. Access the application at:
+   
+   http://<EXTERNAL-IP>
+
+{{- end }}
+
+3. Log in with the admin credentials:
+   
+   Email:    {{ .Values.openopsEnv.OPS_OPENOPS_ADMIN_EMAIL }}
+   Password: (set in your values file)
+
+{{ if eq .Values.postgres.replicas 1.0 -}}
+⚠️  IMPORTANT: You are using the bundled PostgreSQL database.
+   For production, use a managed database service (AWS RDS, GCP Cloud SQL, etc.)
+   and set postgres.replicas=0 in your values file.
+{{ end -}}
+
+{{ if eq .Values.redis.replicas 1.0 -}}
+⚠️  IMPORTANT: You are using the bundled Redis instance.
+   For production, use a managed Redis service (AWS ElastiCache, GCP Memorystore, etc.)
+   and set redis.replicas=0 in your values file.
+{{ end -}}
+
+{{- if not .Values.secretEnv.existingSecret }}
+⚠️  WARNING: Secrets are stored in Helm values.
+   For production, use an external secret manager (SOPS, ExternalSecrets, Vault)
+   and set secretEnv.existingSecret to reference it.
+{{- end }}
+
+{{- if and .Values.ingress.enabled (not .Values.ingress.tls) }}
+⚠️  WARNING: Ingress is enabled but TLS is not configured.
+   Configure TLS certificates for production deployments.
+{{- end }}
+
+{{- if lt .Values.app.replicas 2.0 }}
+ℹ️  Note: Running with {{ .Values.app.replicas }} replica(s) for the app component.
+   For high availability, increase to 2 or more replicas.
+{{- end }}
+
+For more information:
+- Documentation: https://github.com/openops/helm-chart/blob/main/README.md
+- Report issues: https://github.com/openops/helm-chart/issues
+
+Useful commands:
+
+  # View all resources
+  kubectl get all -n {{ .Release.Namespace }}
+
+  # View logs
+  kubectl logs -n {{ .Release.Namespace }} -l app={{ .Values.app.name }} --tail=100 -f
+
+  # Update the deployment
+  helm upgrade {{ .Release.Name }} ./chart -f values.overrides.yaml
+
+  # Uninstall
+  helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
