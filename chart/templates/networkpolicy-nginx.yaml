@@ -1,0 +1,56 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.nginx.name }}
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "nginx") | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "nginx") | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress traffic from anywhere (LoadBalancer/Ingress)
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow traffic to app
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" . "component" "app") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 80
+    # Allow traffic to tables
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" . "component" "tables") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 80
+    # Allow traffic to analytics
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" . "component" "analytics") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 8088
+{{- end }}

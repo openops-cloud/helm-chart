@@ -1,0 +1,88 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "app") | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "app") | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow traffic from nginx
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" . "component" "nginx") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 80
+    # Allow traffic from engine
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" . "component" "engine") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow traffic to postgres
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" . "component" "postgres") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow traffic to redis
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" . "component" "redis") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow traffic to engine
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" . "component" "engine") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 3005
+    # Allow traffic to tables
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" . "component" "tables") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 80
+    # Allow traffic to analytics
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" . "component" "analytics") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 8088
+    # Allow egress to external telemetry endpoint
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+{{- end }}

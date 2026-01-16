@@ -1,0 +1,58 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.engine.name }}
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "engine") | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "engine") | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow traffic from app
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" . "component" "app") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 3005
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow traffic to app
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" . "component" "app") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 80
+    # Allow traffic to postgres
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" . "component" "postgres") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow traffic to redis
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "openops.componentSelectorLabels" (dict "root" . "component" "redis") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 6379
+{{- end }}

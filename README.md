@@ -99,6 +99,27 @@ Customize storage classes and sizes via `chart/values.yaml` or your overrides fi
 - The nginx configuration routes traffic to the appropriate backend services.
 - An optional `Ingress` resource can be enabled for environments using an ingress controller instead of a LoadBalancer.
 
+### Network policies
+The chart includes NetworkPolicy resources to restrict east-west traffic between pods, implementing a default-deny policy with explicit allow rules for authorized communication patterns.
+
+**Enabled by default** to provide defense-in-depth security. Each component has a dedicated NetworkPolicy that:
+- Blocks all ingress and egress traffic by default
+- Allows DNS resolution to all pods
+- Permits only necessary communication paths:
+  - nginx → app, tables, analytics
+  - app → engine, postgres, redis, tables, analytics
+  - engine → app, postgres, redis
+  - tables → postgres, redis
+  - analytics → postgres
+
+Disable NetworkPolicies if your cluster does not support them or if you prefer unrestricted pod-to-pod communication:
+```yaml
+networkPolicy:
+  enabled: false
+```
+
+**Note**: NetworkPolicies require a CNI plugin that supports them (Calico, Cilium, Weave Net, etc.). Clusters without NetworkPolicy support will ignore these resources.
+
 ## Dependencies
 The deployments include health checks and readiness probes so dependent services wait until their prerequisites are available.
 

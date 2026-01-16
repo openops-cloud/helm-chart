@@ -6,7 +6,7 @@
 - `/chart/values.overrides-example.yaml`: Reference file that shows how to structure your own overrides file for deployments.
 - `/chart/values.ci.yaml`: Resource-constrained overlay for CI environments.
 - `/chart/values.production.yaml`: Production overlay with externalized dependencies and cloud settings.
-- `/chart/templates/`: Kubernetes manifests rendered by Helm. Each service/component has its own deployment and service files, along with shared helpers in `_helpers.tpl` and secrets/configmaps under `configmap-*.yaml`, `secret-env.yaml`, and `pvc-*.yaml`.
+- `/chart/templates/`: Kubernetes manifests rendered by Helm. Each service/component has its own deployment and service files, along with shared helpers in `_helpers.tpl` and secrets/configmaps under `configmap-*.yaml`, `secret-env.yaml`, and `pvc-*.yaml`. NetworkPolicy resources restrict east-west traffic between pods.
 - `/.github/prlint.json`: Pull-request lint configuration (see below) that runs in CI to enforce title/body rules.
 - `/.github/workflows/`: Automation (tests, lint, release) triggered by pushes and pull requests. Update these only when you need to change CI behavior.
 

@@ -27,6 +27,10 @@ global:
   # Priority class for pod scheduling
   priorityClassName: ""
 
+# Network policies for restricting east-west traffic
+networkPolicy:
+  enabled: true
+
 image:
   repository: public.ecr.aws/openops
   pullPolicy: IfNotPresent
