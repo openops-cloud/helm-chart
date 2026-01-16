@@ -1,0 +1,145 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.postgres.name }}
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
+spec:
+  serviceName: {{ .Values.postgres.name }}-headless
+  replicas: {{ .Values.postgres.replicas }}
+  podManagementPolicy: {{ .Values.postgres.podManagementPolicy | default "OrderedReady" }}
+  updateStrategy:
+    type: {{ .Values.postgres.updateStrategy.type | default "RollingUpdate" }}
+    {{- if eq (.Values.postgres.updateStrategy.type | default "RollingUpdate") "RollingUpdate" }}
+    rollingUpdate:
+      partition: {{ .Values.postgres.updateStrategy.rollingUpdate.partition | default 0 }}
+    {{- end }}
+  selector:
+    matchLabels:
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "postgres") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "openops.componentSelectorLabels" (dict "root" . "component" "postgres") | nindent 8 }}
+{{ with include "openops.secretChecksum" . }}
+      annotations:
+        checksum/secret-env: {{ . }}
+        {{- with $.Values.postgres.backup.annotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+{{- end }}
+    spec:
+      {{- include "openops.priorityClassName" . | nindent 6 }}
+      {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "postgres") | nindent 6 }}
+      {{- include "openops.affinity" (dict "root" . "component" "postgres") | nindent 6 }}
+      {{- if .Values.postgres.securityContext.enabled }}
+      securityContext:
+        {{- omit .Values.postgres.securityContext "enabled" | toYaml | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: {{ .Values.postgres.name }}
+        image: {{ .Values.postgres.image }}:{{ .Values.postgres.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args:
+        - postgres
+        - -c
+        - max_connections={{ .Values.postgres.env.maxConnections }}
+        {{- if .Values.postgres.tls.enabled }}
+        - -c
+        - ssl=on
+        - -c
+        - ssl_cert_file=/etc/postgresql/certs/tls.crt
+        - -c
+        - ssl_key_file=/etc/postgresql/certs/tls.key
+        {{- if .Values.postgres.tls.caFile }}
+        - -c
+        - ssl_ca_file=/etc/postgresql/certs/ca.crt
+        {{- end }}
+        {{- end }}
+        env:
+{{ include "openops.renderEnv" (dict "root" . "env" .Values.postgres.env) | nindent 10 }}
+          - name: PGDATA
+            value: "/var/lib/postgresql/data/pgdata"
+          {{- if .Values.postgres.auth.enabled }}
+          - name: POSTGRES_PASSWORD_FILE
+            value: "/etc/postgresql/secrets/password"
+          {{- end }}
+        ports:
+        - containerPort: 5432
+          name: postgres
+{{- with .Values.postgres.resources }}
+        resources:
+{{ toYaml . | nindent 10 }}
+{{- end }}
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        - name: init-script
+          mountPath: /docker-entrypoint-initdb.d/init-db.sh
+          subPath: init-db.sh
+        {{- if .Values.postgres.auth.enabled }}
+        - name: postgres-auth
+          mountPath: /etc/postgresql/secrets
+          readOnly: true
+        {{- end }}
+        {{- if .Values.postgres.tls.enabled }}
+        - name: postgres-tls
+          mountPath: /etc/postgresql/certs
+          readOnly: true
+        {{- end }}
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+      volumes:
+      - name: init-script
+        configMap:
+          name: postgres-init-script
+          defaultMode: 0755
+      {{- if .Values.postgres.auth.enabled }}
+      - name: postgres-auth
+        secret:
+          secretName: {{ .Values.postgres.auth.existingSecret | default "postgres-auth" }}
+          defaultMode: 0400
+      {{- end }}
+      {{- if .Values.postgres.tls.enabled }}
+      - name: postgres-tls
+        secret:
+          secretName: {{ .Values.postgres.tls.existingSecret | default "postgres-tls" }}
+          defaultMode: 0400
+      {{- end }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      labels:
+        {{- include "openops.componentLabels" (dict "root" . "component" "postgres") | nindent 8 }}
+      {{- with .Values.postgres.storage.annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      accessModes:
+        {{- toYaml .Values.postgres.storage.accessModes | nindent 8 }}
+      volumeMode: {{ .Values.postgres.storage.volumeMode }}
+      resources:
+        requests:
+          storage: {{ .Values.postgres.storage.size }}
+      {{- if .Values.postgres.storage.storageClass }}
+      storageClassName: {{ .Values.postgres.storage.storageClass }}
+      {{- end }}

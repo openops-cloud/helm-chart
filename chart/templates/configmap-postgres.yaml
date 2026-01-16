@@ -12,8 +12,10 @@ data:
     echo "[START] creating database for analytics and tables..."
 
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
-        CREATE DATABASE analytics;
-        CREATE DATABASE tables;
+        SELECT 'CREATE DATABASE analytics'
+        WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'analytics')\\gexec
+        SELECT 'CREATE DATABASE tables'
+        WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'tables')\\gexec
     EOSQL
 
     echo "[COMPLETE] creating database for analytics and tables ..."
