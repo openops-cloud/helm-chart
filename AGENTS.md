@@ -7,6 +7,8 @@
 - `/chart/values.ci.yaml`: Resource-constrained overlay for CI environments.
 - `/chart/values.production.yaml`: Production overlay with externalized dependencies and cloud settings.
 - `/chart/templates/`: Kubernetes manifests rendered by Helm. Each service/component has its own deployment and service files, along with shared helpers in `_helpers.tpl` and secrets/configmaps under `configmap-*.yaml`, `secret-env.yaml`, and `pvc-*.yaml`.
+- `/chart/templates/NOTES.txt`: Helm installation notes displayed after deployment with important warnings and next steps.
+- `/README.md`: Comprehensive documentation covering installation, configuration, operational toggles (secrets, TLS, scaling, production hardening), and multi-environment deployments.
 - `/.github/prlint.json`: Pull-request lint configuration (see below) that runs in CI to enforce title/body rules.
 - `/.github/workflows/`: Automation (tests, lint, release) triggered by pushes and pull requests. Update these only when you need to change CI behavior.
 
