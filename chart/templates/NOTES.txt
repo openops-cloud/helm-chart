@@ -2,73 +2,117 @@ Thank you for installing {{ .Chart.Name }}!
 
 Your release is named {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
 
+================================================================================
+SECURITY CHECKLIST - VERIFY BEFORE PRODUCTION USE
+================================================================================
+
+{{- if not .Values.openopsEnv.OPS_ENCRYPTION_KEY }}
+❌ CRITICAL: OPS_ENCRYPTION_KEY is not set!
+{{- else if eq .Values.openopsEnv.OPS_ENCRYPTION_KEY "0123456789abcdef0123456789abcdef" }}
+❌ CRITICAL: Using default OPS_ENCRYPTION_KEY! Generate with: openssl rand -hex 32
+{{- else }}
+✅ OPS_ENCRYPTION_KEY is configured
+{{- end }}
+
+{{- if not .Values.openopsEnv.OPS_JWT_SECRET }}
+❌ CRITICAL: OPS_JWT_SECRET is not set!
+{{- else if contains "dev-" .Values.openopsEnv.OPS_JWT_SECRET }}
+❌ CRITICAL: Using development JWT secret!
+{{- else }}
+✅ OPS_JWT_SECRET is configured
+{{- end }}
+
+{{- if .Values.global.securityContext.enabled }}
+✅ Pod security contexts are enabled
+{{- else }}
+⚠️  WARNING: Pod security contexts are disabled (dev/test only)
+{{- end }}
+
+{{- if .Values.networkPolicy.enabled }}
+✅ Network policies are enabled
+{{- else }}
+⚠️  WARNING: Network policies are disabled (unrestricted pod-to-pod traffic)
+{{- end }}
+
+{{- if .Values.nginx.rateLimiting.enabled }}
+✅ Rate limiting is enabled
+{{- else }}
+⚠️  WARNING: Rate limiting is disabled (vulnerable to DoS)
+{{- end }}
+
+{{- if ge .Values.app.replicas 2.0 }}
+✅ Running {{ .Values.app.replicas }} app replicas (high availability)
+{{- else }}
+⚠️  WARNING: Running with only {{ .Values.app.replicas }} replica (no high availability)
+{{- end }}
+
+{{- if eq .Values.postgres.replicas 1.0 }}
+⚠️  WARNING: Using bundled PostgreSQL (single replica, no backup)
+   Production: Use managed database (AWS RDS, GCP Cloud SQL, Azure Database)
+{{- end }}
+
+{{- if eq .Values.redis.replicas 1.0 }}
+⚠️  WARNING: Using bundled Redis (single replica, data loss risk)
+   Production: Use managed Redis (AWS ElastiCache, GCP Memorystore, Azure Cache)
+{{- end }}
+
+{{- if not .Values.secretEnv.existingSecret }}
+⚠️  WARNING: Secrets stored in Helm values
+   Production: Use external secret manager (SOPS, ExternalSecrets, Vault)
+{{- end }}
+
+{{- if and .Values.ingress.enabled (not .Values.ingress.tls) }}
+❌ CRITICAL: Ingress enabled without TLS! Configure TLS certificates.
+{{- end }}
+
+================================================================================
+
 To get started:
 
 {{- if .Values.ingress.enabled }}
 
 1. Access the application at:
 {{- range .Values.ingress.hosts }}
-   https://{{ .host }}
+   {{ if $.Values.ingress.tls }}https{{ else }}http{{ end }}://{{ .host }}
 {{- end }}
 {{- else }}
 
-1. Get the external IP of the nginx service:
+1. Get the service endpoint:
    
    kubectl get svc {{ .Values.nginx.name }} -n {{ .Release.Namespace }}
 
-2. Access the application at:
-   
-   http://<EXTERNAL-IP>
-
+2. Access the application at the endpoint shown above
 {{- end }}
 
-3. Log in with the admin credentials:
+3. Log in with:
    
    Email:    {{ .Values.openopsEnv.OPS_OPENOPS_ADMIN_EMAIL }}
-   Password: (set in your values file)
+   Password: (from your secure values file)
 
-{{ if eq .Values.postgres.replicas 1.0 -}}
-⚠️  IMPORTANT: You are using the bundled PostgreSQL database.
-   For production, use a managed database service (AWS RDS, GCP Cloud SQL, etc.)
-   and set postgres.replicas=0 in your values file.
-{{ end -}}
+================================================================================
+DOCUMENTATION & SUPPORT
+================================================================================
 
-{{ if eq .Values.redis.replicas 1.0 -}}
-⚠️  IMPORTANT: You are using the bundled Redis instance.
-   For production, use a managed Redis service (AWS ElastiCache, GCP Memorystore, etc.)
-   and set redis.replicas=0 in your values file.
-{{ end -}}
-
-{{- if not .Values.secretEnv.existingSecret }}
-⚠️  WARNING: Secrets are stored in Helm values.
-   For production, use an external secret manager (SOPS, ExternalSecrets, Vault)
-   and set secretEnv.existingSecret to reference it.
-{{- end }}
-
-{{- if and .Values.ingress.enabled (not .Values.ingress.tls) }}
-⚠️  WARNING: Ingress is enabled but TLS is not configured.
-   Configure TLS certificates for production deployments.
-{{- end }}
-
-{{- if lt .Values.app.replicas 2.0 }}
-ℹ️  Note: Running with {{ .Values.app.replicas }} replica(s) for the app component.
-   For high availability, increase to 2 or more replicas.
-{{- end }}
-
-For more information:
-- Documentation: https://github.com/openops/helm-chart/blob/main/README.md
-- Report issues: https://github.com/openops/helm-chart/issues
+📖 Documentation: https://github.com/openops/helm-chart/blob/main/README.md
+🐛 Report issues: https://github.com/openops/helm-chart/issues
+💬 Community: https://github.com/openops/helm-chart/discussions
 
 Useful commands:
 
   # View all resources
   kubectl get all -n {{ .Release.Namespace }}
 
-  # View logs
-  kubectl logs -n {{ .Release.Namespace }} -l app={{ .Values.app.name }} --tail=100 -f
+  # Check pod status  
+  kubectl get pods -n {{ .Release.Namespace }}
 
-  # Update the deployment
-  helm upgrade {{ .Release.Name }} ./chart -f values.overrides.yaml
+  # View app logs
+  kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=app -f
+
+  # Run helm tests
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+  # Upgrade deployment
+  helm upgrade {{ .Release.Name }} ./chart -f values.production.yaml
 
   # Uninstall
   helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}

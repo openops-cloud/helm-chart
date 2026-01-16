@@ -1,11 +1,11 @@
 global:
   version: "0.6.14"
 
-  # Secret validation - enforces that secrets are set before deployment
-  # Set to false for local development/testing
-  validateSecrets: true
+  # Allow single replica deployments (for dev/test only)
+  # Production deployments should use at least 2 replicas
+  allowSingleReplica: false
 
-  # Image pull secrets for private registries
+  # Image pull secrets for private registries (recommended for production)
   imagePullSecrets: []
   # Example: - name: registry-credentials
 
@@ -13,7 +13,8 @@ global:
   commonLabels: {}
   commonAnnotations: {}
 
-  # Security context for all pods (can be overridden per component)
+  # Security context for all pods - ENABLED BY DEFAULT
+  # These are production-ready secure defaults
   securityContext:
     enabled: true
     runAsNonRoot: true
@@ -22,7 +23,7 @@ global:
     seccompProfile:
       type: RuntimeDefault
 
-  # Container security context (can be overridden per component)
+  # Container security context - ENABLED BY DEFAULT
   containerSecurityContext:
     enabled: true
     allowPrivilegeEscalation: false
@@ -85,14 +86,12 @@ openopsEnv:
   OPS_OPENOPS_TABLES_VERSION: "{{ .Values.tables.tag }}"
   OPS_ANALYTICS_VERSION: "{{ .Values.analytics.tag }}"
 
-  # Authentication
-  # WARNING: These default values MUST be changed for any deployment
-  # Generate secure random values using: openssl rand -hex 32
-  # For minikube/local development ONLY - never use in production
-  OPS_ENCRYPTION_KEY: ""  # 32-byte hex string required
-  OPS_JWT_SECRET: ""      # Random secret required
+  # Authentication - REQUIRED, NO DEFAULTS
+  # Generate secure values with: openssl rand -hex 32
+  OPS_ENCRYPTION_KEY: ""  # REQUIRED: 32-character hex string
+  OPS_JWT_SECRET: ""      # REQUIRED: Random secret string
   OPS_OPENOPS_ADMIN_EMAIL: admin@openops.com
-  OPS_OPENOPS_ADMIN_PASSWORD: ""  # Strong password required
+  OPS_OPENOPS_ADMIN_PASSWORD: ""  # REQUIRED: Strong password
 
   # Telemetry
   OPS_LOG_LEVEL: info
@@ -115,7 +114,7 @@ openopsEnv:
   OPS_POSTGRES_HOST: '{{ include "openops.postgresHost" . }}'
   OPS_POSTGRES_PORT: '{{ include "openops.postgresPort" . }}'
   OPS_POSTGRES_USERNAME: postgres
-  OPS_POSTGRES_PASSWORD: ""  # Strong password required
+  OPS_POSTGRES_PASSWORD: ""  # REQUIRED: Strong password
 
   # Tables
   OPS_OPENOPS_TABLES_DATABASE_NAME: tables
@@ -129,8 +128,8 @@ openopsEnv:
   # Analytics
   OPS_ANALYTICS_PUBLIC_URL: "{{ .Values.openopsEnv.OPS_PUBLIC_URL }}"
   OPS_ANALYTICS_PRIVATE_URL: '{{ include "openops.analyticsServiceUrl" . }}'
-  OPS_ANALYTICS_ADMIN_PASSWORD: ""  # Strong password required
-  ANALYTICS_POWERUSER_PASSWORD: ""  # Strong password required
+  OPS_ANALYTICS_ADMIN_PASSWORD: ""  # REQUIRED: Strong password
+  ANALYTICS_POWERUSER_PASSWORD: ""  # REQUIRED: Strong password
   ANALYTICS_ALLOW_ADHOC_SUBQUERY: "true"
 
   # AWS
@@ -154,7 +153,7 @@ secretEnv:
 app:
   name: openops-app
   image: openops-app
-  replicas: 1
+  replicas: 2  # Minimum 2 for high availability
   resources:
     requests:
       memory: "1Gi"
@@ -162,15 +161,15 @@ app:
     limits:
       memory: "2Gi"
       cpu: "1000m"
-  # Pod Disruption Budget
+  # Pod Disruption Budget - ENABLED BY DEFAULT
   podDisruptionBudget:
     enabled: true
-    minAvailable: 1  # Ensure at least 1 pod is available during disruptions
+    minAvailable: 1
   # Horizontal Pod Autoscaler
   autoscaling:
     enabled: false
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicas: 2
+    maxReplicas: 10
     targetCPUUtilizationPercentage: 80
     targetMemoryUtilizationPercentage: 80
   # Init containers (optional)
@@ -189,7 +188,7 @@ app:
 engine:
   name: openops-engine
   image: openops-engine
-  replicas: 1
+  replicas: 2  # Minimum 2 for high availability
   resources:
     requests:
       memory: "512Mi"
@@ -197,15 +196,15 @@ engine:
     limits:
       memory: "1Gi"
       cpu: "500m"
-  # Pod Disruption Budget
+  # Pod Disruption Budget - ENABLED BY DEFAULT
   podDisruptionBudget:
     enabled: true
     minAvailable: 1
   # Horizontal Pod Autoscaler
   autoscaling:
     enabled: false
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicas: 2
+    maxReplicas: 10
     targetCPUUtilizationPercentage: 80
     targetMemoryUtilizationPercentage: 80
   # Init containers (optional)
@@ -494,23 +493,23 @@ nginx:
   name: nginx
   image: nginx
   tag: "1.27.4"
-  replicas: 1
+  replicas: 2  # Minimum 2 for high availability
   resources:
     requests:
-      memory: "128Mi"
-      cpu: "100m"
-    limits:
       memory: "256Mi"
       cpu: "200m"
-  # Pod Disruption Budget
+    limits:
+      memory: "512Mi"
+      cpu: "400m"
+  # Pod Disruption Budget - ENABLED BY DEFAULT
   podDisruptionBudget:
     enabled: true
     minAvailable: 1
   # Horizontal Pod Autoscaler
   autoscaling:
     enabled: false
-    minReplicas: 1
-    maxReplicas: 3
+    minReplicas: 2
+    maxReplicas: 5
     targetCPUUtilizationPercentage: 80
     targetMemoryUtilizationPercentage: 80
   # Service Account
@@ -518,7 +517,7 @@ nginx:
     create: true
     name: ""
     annotations: {}
-  # Security headers and rate limiting
+  # Security headers - ENABLED BY DEFAULT
   securityHeaders:
     enabled: true
     xContentTypeOptions: "nosniff"
@@ -526,13 +525,14 @@ nginx:
     contentSecurityPolicy: "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:;"
     permissionsPolicy: "geolocation=(), microphone=(), camera=()"
     referrerPolicy: "strict-origin-when-cross-origin"
+  # Rate limiting - ENABLED BY DEFAULT for security
   rateLimiting:
-    enabled: false  # Disabled by default for local development
+    enabled: true
     zone: "api:10m"
-    rate: "10r/s"
-    burst: 20
+    rate: "100r/s"  # Reasonable default for production
+    burst: 200
     connZone: "addr:10m"
-    connLimit: 10
+    connLimit: 100
   service:
     port: 80
     type: LoadBalancer
@@ -570,19 +570,18 @@ ingress:
     hstsIncludeSubdomains: "true"
     hstsPreload: "true"
 
-# Network Policies for pod-to-pod communication restrictions
+# Network Policies for pod-to-pod communication restrictions - ENABLED BY DEFAULT
 networkPolicy:
-  enabled: false  # Disabled by default for ease of local setup
-  # When enabled, creates network policies that restrict traffic between components
-  # based on the principle of least privilege
+  enabled: true
+  # Enforces least-privilege network access between components
 
 # Resource limits and quotas
 limitRange:
-  enabled: false  # Optional: enforce minimum/maximum resource limits
+  enabled: false  # Optional: enforce minimum/maximum resource limits at namespace level
   limits:
     - max:
-        cpu: "2"
-        memory: "4Gi"
+        cpu: "4"
+        memory: "8Gi"
       min:
         cpu: "100m"
         memory: "128Mi"

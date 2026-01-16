@@ -1,16 +1,18 @@
-# Resource overrides for CI environments with limited capacity.
+# CI environment overrides
+# Resource-constrained settings for CI testing
+# Includes test secrets - NOT FOR PRODUCTION
 
-# Global CI settings
 global:
-  # Disable secret validation for CI
-  validateSecrets: false
+  # Allow single replica for CI
+  allowSingleReplica: true
+  
   # Disable security contexts for CI compatibility
   securityContext:
     enabled: false
   containerSecurityContext:
     enabled: false
 
-# CI secrets (not for production)
+# CI test secrets (not for production)
 openopsEnv:
   OPS_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef"
   OPS_JWT_SECRET: "ci-jwt-secret-not-for-production"
@@ -19,8 +21,13 @@ openopsEnv:
   OPS_ANALYTICS_ADMIN_PASSWORD: "ci-analytics123"
   ANALYTICS_POWERUSER_PASSWORD: "ci-poweruser123"
 
+# Disable network policies for CI
+networkPolicy:
+  enabled: false
+
 # Disable PDBs for single-node CI
 app:
+  replicas: 1
   podDisruptionBudget:
     enabled: false
   resources:
@@ -32,6 +39,7 @@ app:
       memory: "1Gi"
 
 engine:
+  replicas: 1
   podDisruptionBudget:
     enabled: false
   resources:
@@ -43,6 +51,7 @@ engine:
       memory: "768Mi"
 
 analytics:
+  replicas: 1
   podDisruptionBudget:
     enabled: false
   resources:
@@ -54,6 +63,7 @@ analytics:
       memory: "1Gi"
 
 postgres:
+  replicas: 1
   resources:
     requests:
       cpu: "200m"
@@ -65,6 +75,7 @@ postgres:
     enabled: false
 
 redis:
+  replicas: 1
   resources:
     requests:
       cpu: "50m"
@@ -76,6 +87,7 @@ redis:
     enabled: false
 
 tables:
+  replicas: 1
   podDisruptionBudget:
     enabled: false
   resources:
@@ -87,7 +99,11 @@ tables:
       memory: "2Gi"
 
 nginx:
+  replicas: 1
   podDisruptionBudget:
+    enabled: false
+  # Disable rate limiting for CI
+  rateLimiting:
     enabled: false
   resources:
     requests:

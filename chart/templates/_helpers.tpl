@@ -287,28 +287,49 @@ Returns empty string when using an external secret to avoid circular dependencie
 {{- end }}
 
 {{/*
-Validate that required secrets are configured
+Validate that required secrets are configured - ALWAYS ENFORCED
 */}}
 {{- define "openops.validateSecrets" -}}
-{{- if .Values.global.validateSecrets -}}
-{{- if not .Values.openopsEnv.OPS_ENCRYPTION_KEY -}}
+{{- $encKey := .Values.openopsEnv.OPS_ENCRYPTION_KEY -}}
+{{- if not $encKey -}}
 {{- fail "ERROR: OPS_ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32" -}}
+{{- end -}}
+{{- if ne (len $encKey) 32 -}}
+{{- fail "ERROR: OPS_ENCRYPTION_KEY must be exactly 32 hex characters" -}}
 {{- end -}}
 {{- if not .Values.openopsEnv.OPS_JWT_SECRET -}}
 {{- fail "ERROR: OPS_JWT_SECRET is required. Generate with: openssl rand -hex 32" -}}
 {{- end -}}
 {{- if not .Values.openopsEnv.OPS_OPENOPS_ADMIN_PASSWORD -}}
-{{- fail "ERROR: OPS_OPENOPS_ADMIN_PASSWORD is required" -}}
+{{- fail "ERROR: OPS_OPENOPS_ADMIN_PASSWORD is required. Use a strong password" -}}
 {{- end -}}
 {{- if not .Values.openopsEnv.OPS_POSTGRES_PASSWORD -}}
-{{- fail "ERROR: OPS_POSTGRES_PASSWORD is required" -}}
+{{- fail "ERROR: OPS_POSTGRES_PASSWORD is required. Use a strong password" -}}
 {{- end -}}
 {{- if not .Values.openopsEnv.OPS_ANALYTICS_ADMIN_PASSWORD -}}
-{{- fail "ERROR: OPS_ANALYTICS_ADMIN_PASSWORD is required" -}}
+{{- fail "ERROR: OPS_ANALYTICS_ADMIN_PASSWORD is required. Use a strong password" -}}
 {{- end -}}
 {{- if not .Values.openopsEnv.ANALYTICS_POWERUSER_PASSWORD -}}
-{{- fail "ERROR: ANALYTICS_POWERUSER_PASSWORD is required" -}}
+{{- fail "ERROR: ANALYTICS_POWERUSER_PASSWORD is required. Use a strong password" -}}
 {{- end -}}
+{{- end }}
+
+{{/*
+Validate production-ready configuration
+*/}}
+{{- define "openops.validateProduction" -}}
+{{- $component := .component -}}
+{{- $config := index .root.Values $component -}}
+{{- if and $config.replicas (lt ($config.replicas | int) 2) -}}
+{{- if not .root.Values.global.allowSingleReplica -}}
+{{- fail (printf "ERROR: %s requires at least 2 replicas for high availability. Set global.allowSingleReplica=true to override for dev/test" $component) -}}
+{{- end -}}
+{{- end -}}
+{{- if not $config.resources -}}
+{{- fail (printf "ERROR: %s must have resource requests and limits defined" $component) -}}
+{{- end -}}
+{{- if not $config.resources.limits -}}
+{{- fail (printf "ERROR: %s must have resource limits defined" $component) -}}
 {{- end -}}
 {{- end }}
 
