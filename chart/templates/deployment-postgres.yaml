@@ -42,7 +42,7 @@ spec:
         - containerPort: 5432
 {{- with .Values.postgres.resources }}
         resources:
-{{ toYaml . | nindent 8 }}
+{{ toYaml . | nindent 10 }}
 {{- end }}
         volumeMounts:
         - name: postgres-data
