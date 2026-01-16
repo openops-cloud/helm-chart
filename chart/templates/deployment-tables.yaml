@@ -65,8 +65,8 @@ spec:
             - /baserow/backend/docker/docker-entrypoint.sh backend-healthcheck
           initialDelaySeconds: 10
           periodSeconds: 10
-          timeoutSeconds: 8
-          failureThreshold: 30
+          timeoutSeconds: 15
+          failureThreshold: 60
         readinessProbe:
           exec:
             command:
