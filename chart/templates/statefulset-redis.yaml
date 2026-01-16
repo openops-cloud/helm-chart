@@ -92,7 +92,7 @@ spec:
             {{- if .Values.redis.auth.enabled }}
             - sh
             - -c
-            - redis-cli -a $REDIS_PASSWORD ping
+            - export REDISCLI_AUTH=$REDIS_PASSWORD && redis-cli ping
             {{- else }}
             - redis-cli
             - ping
@@ -107,7 +107,7 @@ spec:
             {{- if .Values.redis.auth.enabled }}
             - sh
             - -c
-            - redis-cli -a $REDIS_PASSWORD ping
+            - export REDISCLI_AUTH=$REDIS_PASSWORD && redis-cli ping
             {{- else }}
             - redis-cli
             - ping

@@ -242,7 +242,7 @@ postgres:
   # Pod security context
   securityContext:
     enabled: false
-    fsGroup: 999
+    fsGroup: 999  # Matches postgres user UID/GID in postgres:18.1 image
     runAsUser: 999
     runAsNonRoot: true
   storage:
@@ -296,7 +296,7 @@ redis:
   # Pod security context
   securityContext:
     enabled: false
-    fsGroup: 999
+    fsGroup: 999  # Matches redis user UID/GID in redis:7.4.0 image
     runAsUser: 999
     runAsNonRoot: true
   storage:
