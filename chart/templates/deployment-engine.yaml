@@ -14,9 +14,9 @@ spec:
     metadata:
       labels:
         {{- include "openops.componentSelectorLabels" (dict "root" . "component" "engine") | nindent 8 }}
-{{ with include "openops.secretChecksum" . }}
+{{ with include "openops.componentConfigChecksum" (dict "root" . "component" "engine") }}
       annotations:
-        checksum/secret-env: {{ . }}
+        checksum/config: {{ . }}
 {{- end }}
     spec:
       {{- include "openops.priorityClassName" . | nindent 6 }}
@@ -32,8 +32,8 @@ spec:
               value: "--no-node-snapshot"
             - name: OPS_COMPONENT
               value: engine
-{{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnv) | nindent 12 }}
-{{ include "openops.renderEnv" (dict "root" . "env" .Values.engine.env) | nindent 12 }}
+{{ include "openops.renderEnv" (dict "root" . "component" "engine" "env" .Values.openopsEnv) | nindent 12 }}
+{{ include "openops.renderEnv" (dict "root" . "component" "engine" "env" .Values.engine.env) | nindent 12 }}
           ports:
             - containerPort: 3005
 {{- with .Values.engine.resources }}

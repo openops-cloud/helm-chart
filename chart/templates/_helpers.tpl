@@ -155,35 +155,52 @@ false
 {{- end }}
 
 {{/*
-Render a single environment variable, sourcing secrets from the shared secret when needed.
-Expected dict: { "root": $, "key": "ENV", "value": "value" }
+Render a single environment variable, sourcing from component-specific ConfigMap or Secret.
+Expected dict: { "root": $, "component": "app", "key": "ENV", "value": "value" }
 */}}
 {{- define "openops.envVar" -}}
 {{- $root := .root -}}
+{{- $component := .component -}}
 {{- $key := .key -}}
 {{- $value := .value -}}
+{{- $componentName := "" -}}
+{{- if eq $component "app" -}}
+{{- $componentName = $root.Values.app.name -}}
+{{- else if eq $component "engine" -}}
+{{- $componentName = $root.Values.engine.name -}}
+{{- else if eq $component "tables" -}}
+{{- $componentName = $root.Values.tables.name -}}
+{{- else if eq $component "analytics" -}}
+{{- $componentName = $root.Values.analytics.name -}}
+{{- else if eq $component "postgres" -}}
+{{- $componentName = $root.Values.postgres.name -}}
+{{- end -}}
 {{- if eq (include "openops.isSecretKey" $key) "true" -}}
 - name: {{ $key }}
   valueFrom:
     secretKeyRef:
-      name: {{ include "openops.secretName" $root }}
+      name: {{ $componentName }}-secret
       key: {{ $key }}
 {{- else -}}
 - name: {{ $key }}
-  value: {{ tpl (tpl $value $root) $root | quote }}
+  valueFrom:
+    configMapKeyRef:
+      name: {{ $componentName }}-config
+      key: {{ $key }}
 {{- end -}}
 {{- end }}
 
 {{/*
 Render environment variables from a map using openops.envVar.
-Expected dict: { "root": $, "env": dict }
+Expected dict: { "root": $, "component": "app", "env": dict }
 */}}
 {{- define "openops.renderEnv" -}}
 {{- $root := .root -}}
+{{- $component := .component -}}
 {{- $env := .env -}}
 {{- if $env }}
 {{- range $k, $v := $env }}
-{{ include "openops.envVar" (dict "root" $root "key" $k "value" $v) }}
+{{ include "openops.envVar" (dict "root" $root "component" $component "key" $k "value" $v) }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -282,6 +299,103 @@ Returns empty string when using an external secret to avoid circular dependencie
 {{- end -}}
 {{- if $secretData -}}
 {{- toYaml $secretData | sha256sum -}}
+{{- end -}}
+{{- end }}
+{{- end }}
+
+{{/*
+Component-specific config checksum to trigger rollouts when config changes.
+Expected dict: { "root": $, "component": "app" }
+Computes combined checksum of both ConfigMap and Secret for the component.
+*/}}
+{{- define "openops.componentConfigChecksum" -}}
+{{- $root := .root -}}
+{{- $component := .component -}}
+{{- $secretSettings := default (dict) $root.Values.secretEnv -}}
+{{- $create := default true $secretSettings.create -}}
+{{- $existingSecret := default "" $secretSettings.existingSecret -}}
+{{- if and $create (not $existingSecret) -}}
+{{- $allData := dict -}}
+{{- /* Collect ConfigMap data */ -}}
+{{- $configData := dict -}}
+{{- if eq $component "app" -}}
+{{- range $k, $v := $root.Values.openopsEnv }}
+{{- if eq (include "openops.isSecretKey" $k) "false" }}
+{{- $_ := set $configData $k (tpl (tpl $v $root) $root) }}
+{{- end }}
+{{- end }}
+{{- else if eq $component "engine" -}}
+{{- range $k, $v := $root.Values.openopsEnv }}
+{{- if eq (include "openops.isSecretKey" $k) "false" }}
+{{- $_ := set $configData $k (tpl (tpl $v $root) $root) }}
+{{- end }}
+{{- end }}
+{{- range $k, $v := $root.Values.engine.env }}
+{{- if eq (include "openops.isSecretKey" $k) "false" }}
+{{- $_ := set $configData $k (tpl (tpl $v $root) $root) }}
+{{- end }}
+{{- end }}
+{{- else if eq $component "tables" -}}
+{{- range $k, $v := $root.Values.tables.env }}
+{{- if eq (include "openops.isSecretKey" $k) "false" }}
+{{- $_ := set $configData $k (tpl (tpl $v $root) $root) }}
+{{- end }}
+{{- end }}
+{{- else if eq $component "analytics" -}}
+{{- range $k, $v := $root.Values.analytics.env }}
+{{- if eq (include "openops.isSecretKey" $k) "false" }}
+{{- $_ := set $configData $k (tpl (tpl $v $root) $root) }}
+{{- end }}
+{{- end }}
+{{- else if eq $component "postgres" -}}
+{{- range $k, $v := $root.Values.postgres.env }}
+{{- if eq (include "openops.isSecretKey" $k) "false" }}
+{{- $_ := set $configData $k (tpl (tpl $v $root) $root) }}
+{{- end }}
+{{- end }}
+{{- end -}}
+{{- $_ := set $allData "config" $configData -}}
+{{- /* Collect Secret data */ -}}
+{{- $secretData := dict -}}
+{{- if eq $component "app" -}}
+{{- range $k, $v := $root.Values.openopsEnv }}
+{{- if eq (include "openops.isSecretKey" $k) "true" }}
+{{- $_ := set $secretData $k (tpl (tpl $v $root) $root) }}
+{{- end }}
+{{- end }}
+{{- else if eq $component "engine" -}}
+{{- range $k, $v := $root.Values.openopsEnv }}
+{{- if eq (include "openops.isSecretKey" $k) "true" }}
+{{- $_ := set $secretData $k (tpl (tpl $v $root) $root) }}
+{{- end }}
+{{- end }}
+{{- range $k, $v := $root.Values.engine.env }}
+{{- if eq (include "openops.isSecretKey" $k) "true" }}
+{{- $_ := set $secretData $k (tpl (tpl $v $root) $root) }}
+{{- end }}
+{{- end }}
+{{- else if eq $component "tables" -}}
+{{- range $k, $v := $root.Values.tables.env }}
+{{- if eq (include "openops.isSecretKey" $k) "true" }}
+{{- $_ := set $secretData $k (tpl (tpl $v $root) $root) }}
+{{- end }}
+{{- end }}
+{{- else if eq $component "analytics" -}}
+{{- range $k, $v := $root.Values.analytics.env }}
+{{- if eq (include "openops.isSecretKey" $k) "true" }}
+{{- $_ := set $secretData $k (tpl (tpl $v $root) $root) }}
+{{- end }}
+{{- end }}
+{{- else if eq $component "postgres" -}}
+{{- range $k, $v := $root.Values.postgres.env }}
+{{- if eq (include "openops.isSecretKey" $k) "true" }}
+{{- $_ := set $secretData $k (tpl (tpl $v $root) $root) }}
+{{- end }}
+{{- end }}
+{{- end -}}
+{{- $_ := set $allData "secret" $secretData -}}
+{{- if or (gt (len $configData) 0) (gt (len $secretData) 0) -}}
+{{- toYaml $allData | sha256sum -}}
 {{- end -}}
 {{- end }}
 {{- end }}

@@ -14,9 +14,9 @@ spec:
     metadata:
       labels:
         {{- include "openops.componentSelectorLabels" (dict "root" . "component" "postgres") | nindent 8 }}
-{{ with include "openops.secretChecksum" . }}
+{{ with include "openops.componentConfigChecksum" (dict "root" . "component" "postgres") }}
       annotations:
-        checksum/secret-env: {{ . }}
+        checksum/config: {{ . }}
 {{- end }}
     spec:
       {{- include "openops.priorityClassName" . | nindent 6 }}
@@ -31,7 +31,7 @@ spec:
         - -c
         - max_connections={{ .Values.postgres.env.maxConnections }}
         env:
-{{ include "openops.renderEnv" (dict "root" . "env" .Values.postgres.env) | nindent 10 }}
+{{ include "openops.renderEnv" (dict "root" . "component" "postgres" "env" .Values.postgres.env) | nindent 10 }}
           - name: PGDATA
             value: "/var/lib/postgresql/data/pgdata"
         ports:

@@ -36,17 +36,18 @@ This repository contains the Helm chart that deploys the OpenOps application sta
    ```
 
 ## Secret hardening
-- All sensitive environment keys are rendered through a shared Kubernetes `Secret` so containers never embed credentials in-line.
-- Control how that secret is managed via the `secretEnv` block (disable creation, mark it `immutable`, or attach compliance labels/annotations).
-- When `secretEnv.existingSecret` is set (optionally with `create: false`), the chart references the externally managed secret, which is recommended for SOPS, ExternalSecrets, or Vault-driven workflows.
+- Configuration is scoped per-component with dedicated ConfigMaps and Secrets for each service (app, engine, tables, analytics, postgres).
+- Non-sensitive environment variables are stored in component-specific ConfigMaps (`{component}-config`), while sensitive keys (those containing `PASSWORD`, `SECRET`, or `KEY`) are stored in component-specific Secrets (`{component}-secret`).
+- Each component references only its own ConfigMap and Secret, improving security isolation and enabling granular access control.
+- Configuration changes automatically trigger pod rollouts through checksum annotations (`checksum/config`) that track both ConfigMap and Secret data.
+- Control secret creation behavior via the `secretEnv` block (disable creation, mark as `immutable`, or attach compliance labels/annotations).
+- When `secretEnv.existingSecret` is set (optionally with `create: false`), component secrets must be provided externally, which is recommended for SOPS, ExternalSecrets, or Vault-driven workflows.
 - Values added under `secretEnv.stringData` stay in plain text for readability, while entries under `secretEnv.data` are templated and base64-encoded by the chart before being stored.
-- Workloads automatically receive a `checksum/secret-env` pod annotation so any change to the secret triggers a rolling restart.
 
 Example override:
 ```yaml
 secretEnv:
   create: false
-  existingSecret: openops-env
   immutable: true
   annotations:
     secrets.kubernetes.io/managed-by: external

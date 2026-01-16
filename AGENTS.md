@@ -6,7 +6,7 @@
 - `/chart/values.overrides-example.yaml`: Reference file that shows how to structure your own overrides file for deployments.
 - `/chart/values.ci.yaml`: Resource-constrained overlay for CI environments.
 - `/chart/values.production.yaml`: Production overlay with externalized dependencies and cloud settings.
-- `/chart/templates/`: Kubernetes manifests rendered by Helm. Each service/component has its own deployment and service files, along with shared helpers in `_helpers.tpl` and secrets/configmaps under `configmap-*.yaml`, `secret-env.yaml`, and `pvc-*.yaml`.
+- `/chart/templates/`: Kubernetes manifests rendered by Helm. Each service/component has its own deployment and service files, along with shared helpers in `_helpers.tpl` and per-component ConfigMaps/Secrets under `configmap-{component}.yaml`, `secret-{component}.yaml`, and `pvc-*.yaml`.
 - `/.github/prlint.json`: Pull-request lint configuration (see below) that runs in CI to enforce title/body rules.
 - `/.github/workflows/`: Automation (tests, lint, release) triggered by pushes and pull requests. Update these only when you need to change CI behavior.
 
@@ -23,6 +23,13 @@ The `.github/prlint.json` ruleset runs on every pull request. To avoid CI failur
 ## Documentation updates
 - **Update both AGENTS.md and README.md** with every PR if there are relevant changes to repository structure, workflows, guidelines, or usage instructions.
 - Keep documentation synchronized with code changes to ensure agents and users have accurate information.
+
+## Configuration scoping
+- Each component (app, engine, tables, analytics, postgres) has its own dedicated ConfigMap and Secret for environment configuration.
+- Non-sensitive variables are stored in `{component}-config` ConfigMaps, while sensitive keys (containing `PASSWORD`, `SECRET`, or `KEY`) are stored in `{component}-secret` Secrets.
+- Components only have access to their own configuration resources, improving security isolation.
+- Configuration changes automatically trigger pod rollouts via `checksum/config` annotations that hash both ConfigMap and Secret data.
+- The shared `openopsEnv` map in `values.yaml` provides default configuration that is distributed to components, but each component can also define additional env vars in its own section (e.g., `engine.env`, `tables.env`).
 
 ## Commit guidelines
 - Write commit subjects in the imperative mood, mirroring the PR title rules (e.g., "Add Redis PVC annotations").

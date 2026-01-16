@@ -1,0 +1,19 @@
+{{- $root := . -}}
+{{- $appConfig := dict -}}
+{{- range $k, $v := .Values.openopsEnv }}
+{{- if eq (include "openops.isSecretKey" $k) "false" }}
+{{- $_ := set $appConfig $k (tpl (tpl $v $root) $root) }}
+{{- end }}
+{{- end }}
+{{- if gt (len $appConfig) 0 }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.app.name }}-config
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "app") | nindent 4 }}
+data:
+{{- range $k, $v := $appConfig }}
+  {{ $k }}: {{ $v | quote }}
+{{- end }}
+{{- end }}

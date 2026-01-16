@@ -1,0 +1,24 @@
+{{- $root := . -}}
+{{- $engineConfig := dict -}}
+{{- range $k, $v := .Values.openopsEnv }}
+{{- if eq (include "openops.isSecretKey" $k) "false" }}
+{{- $_ := set $engineConfig $k (tpl (tpl $v $root) $root) }}
+{{- end }}
+{{- end }}
+{{- range $k, $v := .Values.engine.env }}
+{{- if eq (include "openops.isSecretKey" $k) "false" }}
+{{- $_ := set $engineConfig $k (tpl (tpl $v $root) $root) }}
+{{- end }}
+{{- end }}
+{{- if gt (len $engineConfig) 0 }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.engine.name }}-config
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "engine") | nindent 4 }}
+data:
+{{- range $k, $v := $engineConfig }}
+  {{ $k }}: {{ $v | quote }}
+{{- end }}
+{{- end }}

@@ -14,9 +14,9 @@ spec:
     metadata:
       labels:
         {{- include "openops.componentSelectorLabels" (dict "root" . "component" "tables") | nindent 8 }}
-{{ with include "openops.secretChecksum" . }}
+{{ with include "openops.componentConfigChecksum" (dict "root" . "component" "tables") }}
       annotations:
-        checksum/secret-env: {{ . }}
+        checksum/config: {{ . }}
 {{- end }}
     spec:
       {{- include "openops.priorityClassName" . | nindent 6 }}
@@ -27,7 +27,7 @@ spec:
         image: "{{ .Values.image.repository }}/{{ .Values.tables.image }}:{{ .Values.tables.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
-{{ include "openops.renderEnv" (dict "root" . "env" .Values.tables.env) | nindent 10 }}
+{{ include "openops.renderEnv" (dict "root" . "component" "tables" "env" .Values.tables.env) | nindent 10 }}
 {{- with .Values.tables.resources }}
         resources:
 {{ toYaml . | nindent 10 }}
