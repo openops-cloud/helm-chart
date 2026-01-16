@@ -7,8 +7,19 @@
 - `/chart/values.ci.yaml`: Resource-constrained overlay for CI environments.
 - `/chart/values.production.yaml`: Production overlay with externalized dependencies and cloud settings.
 - `/chart/templates/`: Kubernetes manifests rendered by Helm. Each service/component has its own deployment and service files, along with shared helpers in `_helpers.tpl` and secrets/configmaps under `configmap-*.yaml`, `secret-env.yaml`, and `pvc-*.yaml`.
+- `/chart/templates/servicemonitor.yaml`: Prometheus ServiceMonitor resources for metrics collection (enabled via `observability.metrics.enabled`).
+- `/chart/templates/test-health.yaml`: Helm test hooks for health endpoint validation.
+- `/chart/templates/test-database.yaml`: Helm test hooks for database readiness checks.
 - `/.github/prlint.json`: Pull-request lint configuration (see below) that runs in CI to enforce title/body rules.
 - `/.github/workflows/`: Automation (tests, lint, release) triggered by pushes and pull requests. Update these only when you need to change CI behavior.
+
+## Observability features
+The chart includes comprehensive observability hooks:
+- **ServiceMonitor resources**: Prometheus Operator integration for metrics scraping from app, engine, tables, analytics, postgres, and redis components.
+- **Log shipping annotations**: Support for Fluentd, Fluent Bit, Promtail, and other log collectors via configurable pod annotations.
+- **Helm test hooks**: Automated health endpoint tests and database readiness checks that run via `helm test`.
+
+Configuration is under the `observability` section in values.yaml with separate knobs for metrics, logs, and tests.
 
 ## PR lint rules
 The `.github/prlint.json` ruleset runs on every pull request. To avoid CI failures:

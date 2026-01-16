@@ -1,0 +1,72 @@
+{{- if .Values.observability.tests.enabled }}
+{{- if .Values.observability.tests.database.postgres.enabled }}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ printf "%s-test-postgres-readiness" (include "openops.fullname" .) }}
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
+    app.kubernetes.io/test: database-readiness
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: postgres-readiness
+      image: {{ .Values.observability.tests.database.postgres.image }}
+      env:
+        - name: PGHOST
+          value: {{ .Values.postgres.name }}
+        - name: PGPORT
+          value: "{{ .Values.postgres.service.port }}"
+        - name: PGUSER
+          value: {{ .Values.openopsEnv.OPS_POSTGRES_USERNAME }}
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "openops.secretName" . }}
+              key: OPS_POSTGRES_PASSWORD
+        - name: PGDATABASE
+          value: {{ .Values.openopsEnv.OPS_POSTGRES_DATABASE }}
+      command:
+        - sh
+        - -c
+        - |
+          echo "Testing PostgreSQL readiness..."
+          pg_isready -U $PGUSER || exit 1
+          echo "Testing database connection..."
+          psql -c "SELECT 1;" || exit 1
+          echo "PostgreSQL readiness check passed!"
+{{- end }}
+{{- if .Values.observability.tests.database.redis.enabled }}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ printf "%s-test-redis-readiness" (include "openops.fullname" .) }}
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "redis") | nindent 4 }}
+    app.kubernetes.io/test: database-readiness
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: redis-readiness
+      image: {{ .Values.observability.tests.database.redis.image }}
+      command:
+        - sh
+        - -c
+        - |
+          echo "Testing Redis readiness..."
+          redis-cli -h {{ .Values.redis.name }} -p {{ .Values.redis.service.port }} ping || exit 1
+          echo "Testing Redis SET/GET..."
+          redis-cli -h {{ .Values.redis.name }} -p {{ .Values.redis.service.port }} SET test-key "test-value" || exit 1
+          redis-cli -h {{ .Values.redis.name }} -p {{ .Values.redis.service.port }} GET test-key || exit 1
+          redis-cli -h {{ .Values.redis.name }} -p {{ .Values.redis.service.port }} DEL test-key || exit 1
+          echo "Redis readiness check passed!"
+{{- end }}
+{{- end }}

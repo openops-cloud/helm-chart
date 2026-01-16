@@ -296,3 +296,88 @@ ingress:
     hstsMaxAge: "31536000"
     hstsIncludeSubdomains: "true"
     hstsPreload: "true"
+
+# Observability configuration
+observability:
+  # Prometheus monitoring via ServiceMonitor resources
+  metrics:
+    enabled: false
+    # ServiceMonitor configuration for Prometheus Operator
+    serviceMonitor:
+      # Interval at which metrics should be scraped
+      interval: 30s
+      # Timeout after which the scrape is ended
+      scrapeTimeout: 10s
+      # Additional labels for ServiceMonitor resources
+      labels: {}
+      # Additional annotations for ServiceMonitor resources
+      annotations: {}
+    # Components to monitor (each has a /metrics or health endpoint)
+    components:
+      app:
+        enabled: true
+        port: 80
+        path: /api/v1/health
+      engine:
+        enabled: true
+        port: 3005
+        path: /health
+      tables:
+        enabled: true
+        port: 80
+        path: /api/_health/
+      analytics:
+        enabled: true
+        port: 8088
+        path: /health
+      postgres:
+        enabled: false
+        port: 5432
+      redis:
+        enabled: false
+        port: 6379
+  
+  # Log shipping configuration
+  logs:
+    # Enable log shipping annotations (works with Fluentd, Fluent Bit, Promtail, etc.)
+    enabled: false
+    # Log format (json or plain)
+    format: json
+    # Additional pod annotations for log shipping
+    annotations: {}
+    # Example annotations for different log shippers:
+    # Fluentd:
+    #   fluentd.io/include: "true"
+    #   fluentd.io/multiline: "true"
+    # Fluent Bit:
+    #   fluentbit.io/parser: "json"
+    # Promtail:
+    #   promtail.io/scrape: "true"
+  
+  # Helm test hooks for health checks
+  tests:
+    enabled: true
+    # Test image for running health checks
+    image: curlimages/curl:8.5.0
+    # Components to test
+    components:
+      app:
+        enabled: true
+        endpoint: /api/v1/health
+      engine:
+        enabled: true
+        endpoint: /health
+      tables:
+        enabled: true
+        endpoint: /api/_health/
+      analytics:
+        enabled: true
+        endpoint: /health
+    # Database readiness tests
+    database:
+      postgres:
+        enabled: true
+        image: postgres:18.1
+      redis:
+        enabled: true
+        image: redis:7.4.0

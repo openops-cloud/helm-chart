@@ -285,3 +285,12 @@ Returns empty string when using an external secret to avoid circular dependencie
 {{- end -}}
 {{- end }}
 {{- end }}
+
+{{/*
+Render log shipping annotations
+*/}}
+{{- define "openops.logShippingAnnotations" -}}
+{{- if and .Values.observability.logs.enabled .Values.observability.logs.annotations }}
+{{- toYaml .Values.observability.logs.annotations }}
+{{- end }}
+{{- end }}

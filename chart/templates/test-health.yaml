@@ -1,0 +1,38 @@
+{{- if .Values.observability.tests.enabled }}
+{{- $root := . }}
+{{- range $component, $config := .Values.observability.tests.components }}
+{{- if $config.enabled }}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ printf "%s-test-%s-health" (include "openops.fullname" $root) $component }}
+  labels:
+    {{- include "openops.componentLabels" (dict "root" $root "component" $component) | nindent 4 }}
+    app.kubernetes.io/test: health-check
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: health-check
+      image: {{ $root.Values.observability.tests.image }}
+      command:
+        - sh
+        - -c
+        - |
+          echo "Testing {{ $component }} health endpoint..."
+          {{- if eq $component "app" }}
+          curl -f http://{{ $root.Values.app.name }}{{ $config.endpoint }} || exit 1
+          {{- else if eq $component "engine" }}
+          curl -f http://{{ $root.Values.engine.name }}:3005{{ $config.endpoint }} || exit 1
+          {{- else if eq $component "tables" }}
+          curl -f http://{{ $root.Values.tables.name }}{{ $config.endpoint }} || exit 1
+          {{- else if eq $component "analytics" }}
+          curl -f http://{{ $root.Values.analytics.name }}:8088{{ $config.endpoint }} || exit 1
+          {{- end }}
+          echo "{{ $component }} health check passed!"
+{{- end }}
+{{- end }}
+{{- end }}

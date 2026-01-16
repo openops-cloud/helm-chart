@@ -1,0 +1,32 @@
+{{- if .Values.observability.metrics.enabled }}
+{{- $root := . }}
+{{- range $component, $config := .Values.observability.metrics.components }}
+{{- if $config.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ printf "%s-%s" (include "openops.fullname" $root) $component }}
+  labels:
+    {{- include "openops.componentLabels" (dict "root" $root "component" $component) | nindent 4 }}
+    {{- with $root.Values.observability.metrics.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with $root.Values.observability.metrics.serviceMonitor.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "openops.componentSelectorLabels" (dict "root" $root "component" $component) | nindent 6 }}
+  endpoints:
+    - port: {{ if eq $component "app" }}http{{ else if eq $component "engine" }}http{{ else if eq $component "tables" }}http{{ else if eq $component "analytics" }}http{{ else }}tcp{{ end }}
+      {{- if $config.path }}
+      path: {{ $config.path }}
+      {{- end }}
+      interval: {{ $root.Values.observability.metrics.serviceMonitor.interval }}
+      scrapeTimeout: {{ $root.Values.observability.metrics.serviceMonitor.scrapeTimeout }}
+{{- end }}
+{{- end }}
+{{- end }}

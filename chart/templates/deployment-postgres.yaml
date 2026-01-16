@@ -18,6 +18,9 @@ spec:
       annotations:
         checksum/secret-env: {{ . }}
 {{- end }}
+{{- with include "openops.logShippingAnnotations" . }}
+        {{- . | nindent 8 }}
+{{- end }}
     spec:
       {{- include "openops.priorityClassName" . | nindent 6 }}
       {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "postgres") | nindent 6 }}

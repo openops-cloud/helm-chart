@@ -102,6 +102,70 @@ Customize storage classes and sizes via `chart/values.yaml` or your overrides fi
 ## Dependencies
 The deployments include health checks and readiness probes so dependent services wait until their prerequisites are available.
 
+## Observability
+The chart provides comprehensive observability features for monitoring, logging, and testing:
+
+### Metrics and monitoring
+Enable Prometheus ServiceMonitor resources for metrics collection:
+```yaml
+observability:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      interval: 30s
+      scrapeTimeout: 10s
+      labels:
+        prometheus: kube-prometheus
+```
+
+Individual components can be enabled/disabled:
+```yaml
+observability:
+  metrics:
+    components:
+      app:
+        enabled: true
+        port: 80
+        path: /api/v1/health
+      postgres:
+        enabled: false
+```
+
+### Log shipping
+Configure log shipping annotations for integration with Fluentd, Fluent Bit, Promtail, or other log collectors:
+```yaml
+observability:
+  logs:
+    enabled: true
+    format: json
+    annotations:
+      fluentd.io/include: "true"
+      fluentd.io/multiline: "true"
+```
+
+### Helm tests
+Run health checks and database readiness tests:
+```bash
+helm test openops -n openops
+```
+
+Configure which tests to run:
+```yaml
+observability:
+  tests:
+    enabled: true
+    components:
+      app:
+        enabled: true
+      engine:
+        enabled: true
+    database:
+      postgres:
+        enabled: true
+      redis:
+        enabled: true
+```
+
 ## Topology and rollout safeguards
 The chart provides built-in safeguards to avoid single-node concentration and ensure safe rolling updates:
 
