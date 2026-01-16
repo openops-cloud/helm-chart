@@ -86,12 +86,61 @@ The `values.production.yaml` overlay demonstrates:
 - Security and logging best practices
 
 ## Storage
-The chart provisions PersistentVolumeClaims for:
-- PostgreSQL data (20Gi)
-- Redis data (5Gi)
-- Tables data (10Gi)
+The chart uses StatefulSets with volumeClaimTemplates for stateful dependencies:
+- **PostgreSQL**: 20Gi persistent storage (StatefulSet)
+- **Redis**: 5Gi persistent storage (StatefulSet)
+- **Tables**: 10Gi persistent storage (PVC)
 
-Customize storage classes and sizes via `chart/values.yaml` or your overrides file.
+### StatefulSet benefits
+- **Stable network identities**: Each pod gets a predictable DNS name
+- **Ordered rollouts**: Pods are updated sequentially for safe state transitions
+- **Per-pod storage**: Each replica has its own dedicated PersistentVolumeClaim
+- **Safe scaling**: Controlled pod creation and deletion order
+
+### Storage customization
+Customize storage classes, sizes, and backup annotations:
+```yaml
+postgres:
+  storage:
+    size: 50Gi
+    storageClass: "gp3"
+    annotations:
+      snapshot.storage.kubernetes.io/enabled: "true"
+  backup:
+    annotations:
+      backup.velero.io/backup-volumes: data
+```
+
+### Authentication and TLS
+Both Postgres and Redis support optional authentication and TLS:
+```yaml
+postgres:
+  auth:
+    enabled: true
+    existingSecret: "postgres-auth"
+  tls:
+    enabled: true
+    existingSecret: "postgres-tls"
+    caFile: true
+
+redis:
+  auth:
+    enabled: true
+    existingSecret: "redis-auth"
+  tls:
+    enabled: true
+    existingSecret: "redis-tls"
+```
+
+### Update strategies
+StatefulSets support partitioned rollouts for extra safety:
+```yaml
+postgres:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 1  # Update pods with ordinal >= partition
+```
 
 ## Networking
 - The `nginx` service is exposed as a `LoadBalancer` on port 80 by default.

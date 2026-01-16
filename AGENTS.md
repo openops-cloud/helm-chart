@@ -6,9 +6,14 @@
 - `/chart/values.overrides-example.yaml`: Reference file that shows how to structure your own overrides file for deployments.
 - `/chart/values.ci.yaml`: Resource-constrained overlay for CI environments.
 - `/chart/values.production.yaml`: Production overlay with externalized dependencies and cloud settings.
-- `/chart/templates/`: Kubernetes manifests rendered by Helm. Each service/component has its own deployment and service files, along with shared helpers in `_helpers.tpl` and secrets/configmaps under `configmap-*.yaml`, `secret-env.yaml`, and `pvc-*.yaml`.
+- `/chart/templates/`: Kubernetes manifests rendered by Helm. Each service/component has its own deployment/statefulset and service files, along with shared helpers in `_helpers.tpl` and secrets/configmaps under `configmap-*.yaml`, `secret-env.yaml`. Postgres and Redis use StatefulSets with volumeClaimTemplates for stable storage and safe rollouts.
 - `/.github/prlint.json`: Pull-request lint configuration (see below) that runs in CI to enforce title/body rules.
 - `/.github/workflows/`: Automation (tests, lint, release) triggered by pushes and pull requests. Update these only when you need to change CI behavior.
+
+## Stateful dependencies
+- **Postgres and Redis** are deployed as StatefulSets with volumeClaimTemplates for per-pod persistent storage, ordered rollouts, and stable network identities.
+- Both support optional authentication, TLS encryption, and backup annotations for production use.
+- Set `replicas: 0` in production overlays to use external managed services (AWS RDS, ElastiCache, etc.) instead of in-cluster instances.
 
 ## PR lint rules
 The `.github/prlint.json` ruleset runs on every pull request. To avoid CI failures:
