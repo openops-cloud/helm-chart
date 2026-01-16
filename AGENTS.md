@@ -10,6 +10,22 @@
 - `/.github/prlint.json`: Pull-request lint configuration (see below) that runs in CI to enforce title/body rules.
 - `/.github/workflows/`: Automation (tests, lint, release) triggered by pushes and pull requests. Update these only when you need to change CI behavior.
 
+## Infrastructure service authentication
+Redis and PostgreSQL enforce authentication to prevent unauthenticated in-cluster access:
+
+### Redis
+- Password authentication is **required** via `OPS_REDIS_PASSWORD` (stored in the shared secret).
+- TLS can be enabled via `redis.auth.enableTLS: true` with certificates provided in a Kubernetes secret.
+- The `openops.redisUrl` helper template automatically includes the password in the connection string.
+- For production deployments using managed Redis (ElastiCache, Memorystore, etc.), set `redis.replicas: 0` and configure external endpoints.
+
+### PostgreSQL
+- Password authentication is **required** via `POSTGRES_PASSWORD` (stored in the shared secret).
+- Network access is restricted via `pg_hba.conf` to Kubernetes cluster IP ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) using `scram-sha-256` authentication.
+- TLS can be enabled via `postgres.auth.enableTLS: true` with certificates provided in a Kubernetes secret.
+- Client SSL mode is configured via `OPS_POSTGRES_SSL_MODE` (prefer, require, verify-ca, verify-full).
+- For production deployments using managed PostgreSQL (RDS, Cloud SQL, etc.), set `postgres.replicas: 0` and configure external endpoints with `OPS_POSTGRES_SSL_MODE: require`.
+
 ## PR lint rules
 The `.github/prlint.json` ruleset runs on every pull request. To avoid CI failures:
 1. **Title requirements**

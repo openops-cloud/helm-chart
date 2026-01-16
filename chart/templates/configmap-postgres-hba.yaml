@@ -1,0 +1,11 @@
+{{- if and .Values.postgres.auth .Values.postgres.auth.pgHbaConf }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-hba-config
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
+data:
+  pg_hba.conf: |
+{{ .Values.postgres.auth.pgHbaConf | indent 4 }}
+{{- end }}

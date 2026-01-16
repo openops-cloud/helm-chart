@@ -14,6 +14,10 @@ spec:
     metadata:
       labels:
         {{- include "openops.componentSelectorLabels" (dict "root" . "component" "redis") | nindent 8 }}
+{{ with include "openops.secretChecksum" . }}
+      annotations:
+        checksum/secret-env: {{ . }}
+{{- end }}
     spec:
       {{- include "openops.priorityClassName" . | nindent 6 }}
       {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "redis") | nindent 6 }}
@@ -22,6 +26,34 @@ spec:
       - name: {{ .Values.redis.name }}
         image: {{ .Values.redis.image }}:{{ .Values.redis.tag }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+{{- if and .Values.redis.auth .Values.redis.auth.enabled }}
+        command:
+        - redis-server
+        - --requirepass
+        - $(REDIS_PASSWORD)
+{{- if and .Values.redis.auth.enableTLS .Values.redis.auth.tlsCert }}
+        - --tls-port
+        - "6379"
+        - --port
+        - "0"
+        - --tls-cert-file
+        - /etc/redis/tls/tls.crt
+        - --tls-key-file
+        - /etc/redis/tls/tls.key
+{{- if .Values.redis.auth.tlsCA }}
+        - --tls-ca-cert-file
+        - /etc/redis/tls/ca.crt
+{{- end }}
+        - --tls-auth-clients
+        - "no"
+{{- end }}
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "openops.secretName" . }}
+              key: OPS_REDIS_PASSWORD
+{{- end }}
         ports:
         - containerPort: 6379
 {{- with .Values.redis.resources }}
@@ -31,11 +63,21 @@ spec:
         volumeMounts:
         - name: redis-data
           mountPath: /data
+{{- if and .Values.redis.auth .Values.redis.auth.enableTLS .Values.redis.auth.tlsCert }}
+        - name: redis-tls
+          mountPath: /etc/redis/tls
+          readOnly: true
+{{- end }}
         livenessProbe:
           exec:
             command:
-            - redis-cli
-            - ping
+            - sh
+            - -c
+{{- if and .Values.redis.auth .Values.redis.auth.enabled }}
+            - redis-cli -a $REDIS_PASSWORD ping
+{{- else }}
+            - redis-cli ping
+{{- end }}
           initialDelaySeconds: 30
           periodSeconds: 5
           timeoutSeconds: 3
@@ -43,8 +85,13 @@ spec:
         readinessProbe:
           exec:
             command:
-            - redis-cli
-            - ping
+            - sh
+            - -c
+{{- if and .Values.redis.auth .Values.redis.auth.enabled }}
+            - redis-cli -a $REDIS_PASSWORD ping
+{{- else }}
+            - redis-cli ping
+{{- end }}
           initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 3
@@ -53,3 +100,8 @@ spec:
       - name: redis-data
         persistentVolumeClaim:
           claimName: redis-data-pvc
+{{- if and .Values.redis.auth .Values.redis.auth.enableTLS .Values.redis.auth.tlsCert }}
+      - name: redis-tls
+        secret:
+          secretName: redis-tls
+{{- end }}

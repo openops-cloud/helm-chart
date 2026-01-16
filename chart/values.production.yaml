@@ -33,6 +33,8 @@ openopsEnv:
   OPS_POSTGRES_PORT: "5432"
   OPS_POSTGRES_USERNAME: openops_user
   # OPS_POSTGRES_PASSWORD should be set via secret or values.overrides.yaml
+  OPS_POSTGRES_SSL_MODE: require
+  # OPS_POSTGRES_SSL_CERT, OPS_POSTGRES_SSL_KEY, OPS_POSTGRES_SSL_ROOT_CERT should be set via secret
 
   # Tables database configuration
   OPS_OPENOPS_TABLES_DATABASE_NAME: tables
@@ -41,6 +43,8 @@ openopsEnv:
   OPS_QUEUE_MODE: REDIS
   OPS_REDIS_HOST: "your-redis-cluster.cache.amazonaws.com"
   OPS_REDIS_PORT: "6379"
+  # OPS_REDIS_PASSWORD should be set via secret or values.overrides.yaml
+  OPS_REDIS_TLS_ENABLED: "true"
 
   # AWS-specific settings for EKS deployments
   OPS_AWS_ENABLE_IMPLICIT_ROLE: "true"

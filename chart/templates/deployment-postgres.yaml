@@ -13,7 +13,7 @@ spec:
   template:
     metadata:
       labels:
-        {{- include "openops.componentSelectorLabels" (dict "root" . "component" "postgres") | nindent 8 }}
+        {{- include "openops.componentSelectorLabels" (dict "root" . "component" "postgres") | nindent 6 }}
 {{ with include "openops.secretChecksum" . }}
       annotations:
         checksum/secret-env: {{ . }}
@@ -30,6 +30,22 @@ spec:
         - postgres
         - -c
         - max_connections={{ .Values.postgres.env.maxConnections }}
+{{- if and .Values.postgres.auth .Values.postgres.auth.pgHbaConf }}
+        - -c
+        - hba_file=/etc/postgresql/pg_hba.conf
+{{- end }}
+{{- if and .Values.postgres.auth .Values.postgres.auth.enableTLS .Values.postgres.auth.tlsCert }}
+        - -c
+        - ssl=on
+        - -c
+        - ssl_cert_file=/etc/postgresql/tls/tls.crt
+        - -c
+        - ssl_key_file=/etc/postgresql/tls/tls.key
+{{- if .Values.postgres.auth.tlsCA }}
+        - -c
+        - ssl_ca_file=/etc/postgresql/tls/ca.crt
+{{- end }}
+{{- end }}
         env:
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.postgres.env) | nindent 10 }}
           - name: PGDATA
@@ -46,6 +62,16 @@ spec:
         - name: init-script
           mountPath: /docker-entrypoint-initdb.d/init-db.sh
           subPath: init-db.sh
+{{- if and .Values.postgres.auth .Values.postgres.auth.pgHbaConf }}
+        - name: pg-hba-config
+          mountPath: /etc/postgresql/pg_hba.conf
+          subPath: pg_hba.conf
+{{- end }}
+{{- if and .Values.postgres.auth .Values.postgres.auth.enableTLS .Values.postgres.auth.tlsCert }}
+        - name: postgres-tls
+          mountPath: /etc/postgresql/tls
+          readOnly: true
+{{- end }}
         livenessProbe:
           exec:
             command:
@@ -74,3 +100,14 @@ spec:
         configMap:
           name: postgres-init-script
           defaultMode: 0755
+{{- if and .Values.postgres.auth .Values.postgres.auth.pgHbaConf }}
+      - name: pg-hba-config
+        configMap:
+          name: postgres-hba-config
+{{- end }}
+{{- if and .Values.postgres.auth .Values.postgres.auth.enableTLS .Values.postgres.auth.tlsCert }}
+      - name: postgres-tls
+        secret:
+          secretName: postgres-tls
+          defaultMode: 0600
+{{- end }}

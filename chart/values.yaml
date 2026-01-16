@@ -64,6 +64,8 @@ openopsEnv:
   OPS_QUEUE_MODE: REDIS
   OPS_REDIS_HOST: '{{ include "openops.redisHost" . }}'
   OPS_REDIS_PORT: '{{ include "openops.redisPort" . }}'
+  OPS_REDIS_PASSWORD: please-change-this-password-1
+  OPS_REDIS_TLS_ENABLED: "false"
 
   # Database
   OPS_DB_TYPE: POSTGRES
@@ -72,6 +74,10 @@ openopsEnv:
   OPS_POSTGRES_PORT: '{{ include "openops.postgresPort" . }}'
   OPS_POSTGRES_USERNAME: postgres
   OPS_POSTGRES_PASSWORD: please-change-this-password-1
+  OPS_POSTGRES_SSL_MODE: prefer
+  OPS_POSTGRES_SSL_CERT: ""
+  OPS_POSTGRES_SSL_KEY: ""
+  OPS_POSTGRES_SSL_ROOT_CERT: ""
 
   # Tables
   OPS_OPENOPS_TABLES_DATABASE_NAME: tables
@@ -216,6 +222,22 @@ postgres:
     POSTGRES_USER: "{{ .Values.openopsEnv.OPS_POSTGRES_USERNAME }}"
     POSTGRES_PASSWORD: "{{ .Values.openopsEnv.OPS_POSTGRES_PASSWORD }}"
     POSTGRES_DB: "{{ .Values.openopsEnv.OPS_POSTGRES_DATABASE }}"
+  auth:
+    enableTLS: false
+    tlsCert: ""
+    tlsKey: ""
+    tlsCA: ""
+    pgHbaConf: |
+      # TYPE  DATABASE        USER            ADDRESS                 METHOD
+      # Allow local connections
+      local   all             all                                     scram-sha-256
+      # Allow connections from within the Kubernetes cluster
+      host    all             all             10.0.0.0/8              scram-sha-256
+      host    all             all             172.16.0.0/12           scram-sha-256
+      host    all             all             192.168.0.0/16          scram-sha-256
+      # Deny all other connections
+      host    all             all             0.0.0.0/0               reject
+      host    all             all             ::0/0                   reject
   storage:
     size: 20Gi
     storageClass: ""
@@ -238,6 +260,13 @@ redis:
     limits:
       memory: "512Mi"
       cpu: "200m"
+  auth:
+    enabled: true
+    password: "{{ .Values.openopsEnv.OPS_REDIS_PASSWORD }}"
+    enableTLS: false
+    tlsCert: ""
+    tlsKey: ""
+    tlsCA: ""
   storage:
     size: 5Gi
     storageClass: ""

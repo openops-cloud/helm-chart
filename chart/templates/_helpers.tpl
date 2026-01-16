@@ -88,8 +88,19 @@ Redis connection parameters
 {{- .Values.redis.service.port | toString -}}
 {{- end }}
 
+{{- define "openops.redisPassword" -}}
+{{- if and .Values.redis.auth .Values.redis.auth.enabled -}}
+{{- tpl (tpl .Values.redis.auth.password .) . -}}
+{{- end -}}
+{{- end }}
+
 {{- define "openops.redisUrl" -}}
+{{- $password := include "openops.redisPassword" . -}}
+{{- if $password -}}
+{{- printf "redis://:%s@%s:%s/0" $password (include "openops.redisHost" .) (include "openops.redisPort" .) -}}
+{{- else -}}
 {{- printf "redis://%s:%s/0" (include "openops.redisHost" .) (include "openops.redisPort" .) -}}
+{{- end -}}
 {{- end }}
 
 {{/*

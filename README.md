@@ -52,6 +52,57 @@ secretEnv:
     secrets.kubernetes.io/managed-by: external
 ```
 
+## Infrastructure service authentication
+The chart enforces authentication for Redis and PostgreSQL to prevent unauthenticated access:
+
+### Redis authentication
+- **Password protection**: Redis requires authentication via `OPS_REDIS_PASSWORD` (stored in the shared secret).
+- **TLS support**: Enable TLS encryption by setting `redis.auth.enableTLS: true` and providing certificates via `redis.auth.tlsCert`, `redis.auth.tlsKey`, and optionally `redis.auth.tlsCA`.
+- **Connection URL**: The `openops.redisUrl` helper automatically includes the password in the connection string.
+
+Example configuration:
+```yaml
+openopsEnv:
+  OPS_REDIS_PASSWORD: your-secure-redis-password
+  OPS_REDIS_TLS_ENABLED: "true"
+
+redis:
+  auth:
+    enabled: true
+    enableTLS: true
+    # Provide TLS certificates via Kubernetes secrets
+```
+
+### PostgreSQL authentication
+- **Password protection**: Postgres requires authentication via `POSTGRES_PASSWORD` (stored in the shared secret).
+- **pg_hba.conf**: Network access is restricted to Kubernetes cluster IP ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) using `scram-sha-256` authentication. All other connections are rejected.
+- **TLS support**: Enable TLS encryption by setting `postgres.auth.enableTLS: true` and providing certificates via `postgres.auth.tlsCert`, `postgres.auth.tlsKey`, and optionally `postgres.auth.tlsCA`.
+- **SSL mode**: Configure client SSL mode via `OPS_POSTGRES_SSL_MODE` (prefer, require, verify-ca, verify-full).
+
+Example configuration:
+```yaml
+openopsEnv:
+  OPS_POSTGRES_PASSWORD: your-secure-postgres-password
+  OPS_POSTGRES_SSL_MODE: require
+
+postgres:
+  auth:
+    enableTLS: true
+    # Provide TLS certificates via Kubernetes secrets
+    # Custom pg_hba.conf rules can be overridden
+    pgHbaConf: |
+      local   all             all                                     scram-sha-256
+      host    all             all             10.0.0.0/8              scram-sha-256
+      host    all             all             0.0.0.0/0               reject
+```
+
+### Production deployments
+For production environments using managed services (AWS RDS, GCP Cloud SQL, Azure Database, etc.):
+- Set `postgres.replicas: 0` and `redis.replicas: 0` to disable bundled instances
+- Configure external endpoints via `OPS_POSTGRES_HOST`, `OPS_REDIS_HOST`
+- Enable TLS with `OPS_POSTGRES_SSL_MODE: require` and `OPS_REDIS_TLS_ENABLED: "true"`
+- Managed services typically enforce authentication and TLS by default
+
 ## Multi-environment deployments
 Use overlays to configure different environments:
 
