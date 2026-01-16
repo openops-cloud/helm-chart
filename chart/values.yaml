@@ -176,7 +176,7 @@ analytics:
 postgres:
   name: postgres
   image: postgres
-  tag: "14.4.0"
+  tag: "18.1"
   replicas: 1
   resources:
     requests:
@@ -270,4 +270,3 @@ ingress:
     hstsMaxAge: "31536000"
     hstsIncludeSubdomains: "true"
     hstsPreload: "true"
-
