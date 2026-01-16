@@ -115,6 +115,8 @@ openopsEnv:
   OPS_PUBLIC_URL: "https://staging.openops.example.com"
   OPS_ENVIRONMENT_NAME: "staging"
   OPS_LOG_LEVEL: debug
+  OPS_POSTGRES_HOST: "staging-db.example.com"
+  OPS_POSTGRES_DATABASE: openops_staging
 
 # Moderate resource allocation
 app:
@@ -130,10 +132,6 @@ app:
 # Use external staging database
 postgres:
   replicas: 0
-
-openopsEnv:
-  OPS_POSTGRES_HOST: "staging-db.example.com"
-  OPS_POSTGRES_DATABASE: openops_staging
 ```
 
 **Multi-region deployment example:**
