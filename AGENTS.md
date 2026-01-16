@@ -20,6 +20,10 @@ The `.github/prlint.json` ruleset runs on every pull request. To avoid CI failur
    - Reference the tracking item with one of `Fixes|Resolves|Closes|Part of` followed by either a GitHub issue (`#1234`) or a Linear ticket (`OPS-1234`, `OPC-1234`, `CI-1234`, `DOC-1234`).
    - For dependency bumps, "Dependabot commands and options" is also accepted.
 
+## Documentation updates
+- **Update both AGENTS.md and README.md** with every PR if there are relevant changes to repository structure, workflows, guidelines, or usage instructions.
+- Keep documentation synchronized with code changes to ensure agents and users have accurate information.
+
 ## Commit guidelines
 - Write commit subjects in the imperative mood, mirroring the PR title rules (e.g., "Add Redis PVC annotations").
 - Capitalize the first word and keep the subject ≤ 72 characters; add a blank line before the body.
