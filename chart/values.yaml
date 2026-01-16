@@ -240,6 +240,13 @@ postgres:
   image: postgres
   tag: "18.1"
   replicas: 1
+  # StatefulSet pod management policy: OrderedReady (default) or Parallel
+  podManagementPolicy: OrderedReady
+  # StatefulSet update strategy for safe rollouts
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
   resources:
     requests:
       memory: "512Mi"
@@ -252,6 +259,28 @@ postgres:
     POSTGRES_USER: "{{ .Values.openopsEnv.OPS_POSTGRES_USERNAME }}"
     POSTGRES_PASSWORD: "{{ .Values.openopsEnv.OPS_POSTGRES_PASSWORD }}"
     POSTGRES_DB: "{{ .Values.openopsEnv.OPS_POSTGRES_DATABASE }}"
+  # Authentication configuration
+  auth:
+    enabled: false
+    existingSecret: ""
+    passwordKey: password
+  # TLS configuration
+  tls:
+    enabled: false
+    existingSecret: ""
+    caFile: false
+  # Backup annotations for backup tools (e.g., Velero, Stash)
+  backup:
+    annotations: {}
+      # backup.velero.io/backup-volumes: data
+      # pre.hook.backup.velero.io/command: '["/bin/bash", "-c", "PGPASSWORD=$POSTGRES_PASSWORD pg_dump -U $POSTGRES_USER -d $POSTGRES_DB > /var/lib/postgresql/data/backup.sql"]'
+      # post.hook.backup.velero.io/command: '["/bin/bash", "-c", "rm -f /var/lib/postgresql/data/backup.sql"]'
+  # Pod security context
+  securityContext:
+    enabled: false
+    fsGroup: 999  # Matches postgres user UID/GID in postgres:18.1 image
+    runAsUser: 999
+    runAsNonRoot: true
   storage:
     size: 20Gi
     storageClass: ""
@@ -259,6 +288,9 @@ postgres:
       - ReadWriteOnce
     volumeMode: Filesystem
     annotations: {}
+      # Example backup annotations for storage-level snapshots
+      # snapshot.storage.kubernetes.io/enabled: "true"
+      # backup.kubernetes.io/deltas: "P1D P7D P30D"
   service:
     port: 5432
 
@@ -267,6 +299,13 @@ redis:
   image: redis
   tag: "7.4.0"
   replicas: 1
+  # StatefulSet pod management policy: OrderedReady (default) or Parallel
+  podManagementPolicy: OrderedReady
+  # StatefulSet update strategy for safe rollouts
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
   resources:
     requests:
       memory: "256Mi"
@@ -274,6 +313,28 @@ redis:
     limits:
       memory: "512Mi"
       cpu: "200m"
+  # Authentication configuration
+  auth:
+    enabled: false
+    existingSecret: ""
+    passwordKey: password
+  # TLS configuration
+  tls:
+    enabled: false
+    existingSecret: ""
+    caFile: false
+    authClients: "no"
+  # Backup annotations for backup tools (e.g., Velero, Stash)
+  backup:
+    annotations: {}
+      # backup.velero.io/backup-volumes: data
+      # pre.hook.backup.velero.io/command: '["/bin/sh", "-c", "redis-cli BGSAVE"]'
+  # Pod security context
+  securityContext:
+    enabled: false
+    fsGroup: 999  # Matches redis user UID/GID in redis:7.4.0 image
+    runAsUser: 999
+    runAsNonRoot: true
   storage:
     size: 5Gi
     storageClass: ""
@@ -281,6 +342,9 @@ redis:
       - ReadWriteOnce
     volumeMode: Filesystem
     annotations: {}
+      # Example backup annotations for storage-level snapshots
+      # snapshot.storage.kubernetes.io/enabled: "true"
+      # backup.kubernetes.io/deltas: "P1D P7D P30D"
   service:
     port: 6379
 
