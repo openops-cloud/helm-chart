@@ -65,5 +65,4 @@ spec:
           resources:
 {{ toYaml . | nindent 12 }}
 {{- end }}
-          {{- include "openops.startupProbe" (dict "path" "/health" "port" 3005) | nindent 10 }}
           {{- include "openops.lifecyclePreStop" . | nindent 10 }}

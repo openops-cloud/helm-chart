@@ -56,7 +56,7 @@ jobs:
             -f chart/values.ci.yaml \
             --set nginx.service.type=ClusterIP \
             --wait \
-            --timeout 20m
+            --timeout 15m
 
       - name: Wait for workloads
         run: |
