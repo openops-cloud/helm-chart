@@ -24,12 +24,23 @@ spec:
       {{- include "openops.priorityClassName" . | nindent 6 }}
       {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "tables") | nindent 6 }}
       {{- include "openops.affinity" (dict "root" . "component" "tables") | nindent 6 }}
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: tables-data
+        persistentVolumeClaim:
+          claimName: tables-data-pvc
       containers:
       - name: {{ .Values.tables.name }}
         image: "{{ .Values.image.repository }}/{{ .Values.tables.image }}:{{ .Values.tables.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         securityContext:
           {{- toYaml .Values.securityContext.container | nindent 10 }}
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: tables-data
+          mountPath: /baserow/data
         env:
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.tables.env) | nindent 10 }}
 {{- with .Values.tables.resources }}
@@ -38,9 +49,6 @@ spec:
 {{- end }}
         ports:
         - containerPort: 80
-        volumeMounts:
-        - name: tables-data
-          mountPath: /baserow/data
         livenessProbe:
           exec:
             command:
@@ -61,7 +69,3 @@ spec:
           periodSeconds: 20
           timeoutSeconds: 8
           failureThreshold: 10
-      volumes:
-      - name: tables-data
-        persistentVolumeClaim:
-          claimName: tables-data-pvc

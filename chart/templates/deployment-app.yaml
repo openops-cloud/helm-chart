@@ -24,12 +24,18 @@ spec:
       {{- include "openops.priorityClassName" . | nindent 6 }}
       {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "app") | nindent 6 }}
       {{- include "openops.affinity" (dict "root" . "component" "app") | nindent 6 }}
+      volumes:
+      - name: tmp
+        emptyDir: {}
       containers:
         - name: {{ .Values.app.name }}
           image: "{{ .Values.image.repository }}/{{ .Values.app.image }}:{{ .Values.global.version }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
             {{- toYaml .Values.securityContext.container | nindent 12 }}
+          volumeMounts:
+          - name: tmp
+            mountPath: /tmp
           env:
             - name: NODE_OPTIONS
               value: "--no-node-snapshot"

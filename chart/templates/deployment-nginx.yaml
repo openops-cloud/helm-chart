@@ -20,14 +20,6 @@ spec:
       {{- include "openops.priorityClassName" . | nindent 6 }}
       {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "nginx") | nindent 6 }}
       {{- include "openops.affinity" (dict "root" . "component" "nginx") | nindent 6 }}
-      volumes:
-      - name: nginx-config
-        configMap:
-          name: nginx-config
-      - name: nginx-cache
-        emptyDir: {}
-      - name: nginx-run
-        emptyDir: {}
       containers:
       - name: {{ .Values.nginx.name }}
         image: {{ .Values.nginx.image }}:{{ .Values.nginx.tag }}
@@ -64,3 +56,11 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 3
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: nginx-config
+      - name: nginx-cache
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}

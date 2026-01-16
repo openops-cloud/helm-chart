@@ -24,12 +24,18 @@ spec:
       {{- include "openops.priorityClassName" . | nindent 6 }}
       {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "analytics") | nindent 6 }}
       {{- include "openops.affinity" (dict "root" . "component" "analytics") | nindent 6 }}
+      volumes:
+      - name: tmp
+        emptyDir: {}
       containers:
       - name: {{ .Values.analytics.name }}
         image: "{{ .Values.image.repository }}/{{ .Values.analytics.image }}:{{ .Values.analytics.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         securityContext:
           {{- toYaml .Values.securityContext.container | nindent 10 }}
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
         env:
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.analytics.env) | nindent 10 }}
         ports:
