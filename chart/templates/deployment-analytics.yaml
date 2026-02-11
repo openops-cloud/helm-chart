@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.analytics.name }}
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "analytics") | nindent 4 }}
+    {{- with .Values.global.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.global.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.analytics.autoscaling.enabled }}
+  replicas: {{ .Values.analytics.replicas }}
+  {{- end }}
+  {{- include "openops.deploymentStrategy" . | nindent 2 }}
+  selector:
+    matchLabels:
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "analytics") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "openops.componentSelectorLabels" (dict "root" . "component" "analytics") | nindent 8 }}
+        {{- with .Values.global.commonLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- include "openops.prometheusAnnotations" (dict "root" . "component" "analytics") | nindent 8 }}
+        {{- with include "openops.secretChecksum" . }}
+        checksum/secret-env: {{ . }}
+        {{- end }}
+        {{- with .Values.global.commonAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "openops.serviceAccountName" (dict "root" . "component" "analytics") }}
+      {{- include "openops.imagePullSecrets" . | nindent 6 }}
+      {{- include "openops.podSecurityContext" (dict "root" . "component" "analytics") | nindent 6 }}
+      {{- include "openops.priorityClassName" . | nindent 6 }}
+      {{- include "openops.terminationGracePeriodSeconds" . | nindent 6 }}
+      {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "analytics") | nindent 6 }}
+      {{- include "openops.affinity" (dict "root" . "component" "analytics") | nindent 6 }}
+      {{- include "openops.nodeSelector" . | nindent 6 }}
+      {{- include "openops.tolerations" . | nindent 6 }}
+      {{- include "openops.initContainers" (dict "root" . "component" "analytics") | nindent 6 }}
+      containers:
+      - name: {{ .Values.analytics.name }}
+        image: "{{ .Values.image.repository }}/{{ .Values.analytics.image }}:{{ .Values.analytics.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- include "openops.containerSecurityContext" (dict "root" .) | nindent 8 }}
+        env:
+{{ include "openops.renderEnv" (dict "root" . "env" .Values.analytics.env) | nindent 10 }}
+        ports:
+        - containerPort: 8088
+          name: http
+{{- with .Values.analytics.resources }}
+        resources:
+{{ toYaml . | nindent 10 }}
+{{- end }}
+        {{- include "openops.startupProbe" (dict "path" "/health" "port" 8088) | nindent 8 }}
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8088
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 8
+          failureThreshold: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8088
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 8
+          failureThreshold: 10
+        {{- include "openops.lifecyclePreStop" . | nindent 8 }}

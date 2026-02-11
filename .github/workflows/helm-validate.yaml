@@ -1,0 +1,35 @@
+name: Helm Chart Validation
+
+on:
+  pull_request:
+    paths:
+      - 'chart/**'
+      - '.github/workflows/**'
+  push:
+    branches: [main]
+    paths:
+      - 'chart/**'
+      - '.github/workflows/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+
+      - name: Lint chart
+        run: helm lint chart
+
+      - name: Template with default values
+        run: helm template openops chart --values chart/values.ci.yaml
+
+      - name: Template with example overrides
+        run: helm template openops chart -f chart/values.overrides-example.yaml

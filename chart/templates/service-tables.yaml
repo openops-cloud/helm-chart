@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.tables.name }}
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "tables") | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    {{- include "openops.componentSelectorLabels" (dict "root" . "component" "tables") | nindent 4 }}

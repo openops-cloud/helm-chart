@@ -1,0 +1,144 @@
+# Production environment overlay example.
+# This file demonstrates how to externalize dependencies (Postgres, Redis)
+# and configure cloud-specific settings for production deployments.
+#
+# Usage:
+#   helm upgrade --install openops ./chart -n openops \
+#     -f chart/values.yaml \
+#     -f chart/values.production.yaml \
+#     -f values.overrides.yaml
+
+global:
+  version: "1.0.0"
+  publicUrl: "https://openops.example.com"
+
+image:
+  # Use a specific registry for production images
+  repository: your-registry.example.com/openops
+  pullPolicy: IfNotPresent
+
+openopsEnv:
+  OPS_ENVIRONMENT_NAME: "production"
+
+  # Production logging
+  OPS_LOG_LEVEL: warn
+  OPS_LOG_PRETTY: "false"
+
+  # Database - externalized to managed service (e.g., AWS RDS, GCP Cloud SQL, Azure Database)
+  OPS_DB_TYPE: POSTGRES
+  OPS_POSTGRES_DATABASE: openops
+  OPS_POSTGRES_HOST: "your-postgres-instance.region.rds.amazonaws.com"
+  OPS_POSTGRES_PORT: "5432"
+  OPS_POSTGRES_USERNAME: openops_user
+  # OPS_POSTGRES_PASSWORD should be set via secret or values.overrides.yaml
+
+  # Tables database configuration
+  OPS_OPENOPS_TABLES_DATABASE_NAME: tables
+
+  # Queue - externalized to managed Redis (e.g., AWS ElastiCache, GCP Memorystore, Azure Cache)
+  OPS_QUEUE_MODE: REDIS
+  OPS_REDIS_HOST: "your-redis-cluster.cache.amazonaws.com"
+  OPS_REDIS_PORT: "6379"
+
+  # AWS-specific settings for EKS deployments
+  OPS_AWS_ENABLE_IMPLICIT_ROLE: "true"
+
+  # Telemetry
+  OPS_TELEMETRY_MODE: COLLECTOR
+  OPS_TELEMETRY_COLLECTOR_URL: https://telemetry.openops.com/save
+
+  # Security - override these in values.overrides.yaml with strong secrets
+  # OPS_ENCRYPTION_KEY: generated-32-char-encryption-key
+  # OPS_JWT_SECRET: generated-jwt-secret
+  # OPS_OPENOPS_ADMIN_EMAIL: admin@example.com
+  # OPS_OPENOPS_ADMIN_PASSWORD: strong-password
+  # OPS_ANALYTICS_ADMIN_PASSWORD: strong-password
+  # ANALYTICS_POWERUSER_PASSWORD: strong-password
+
+app:
+  replicas: 3
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "1000m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+
+engine:
+  replicas: 3
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+tables:
+  replicas: 2
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+  storage:
+    # Cloud-specific storage class (examples below)
+    # AWS EKS: gp3, io1, io2
+    # GCP GKE: standard-rwo, premium-rwo
+    # Azure AKS: managed-csi, managed-premium
+    storageClass: "gp3"
+    size: 50Gi
+
+analytics:
+  replicas: 2
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "1000m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+
+# Disable bundled Postgres - using external managed database
+postgres:
+  replicas: 0
+
+# Disable bundled Redis - using external managed Redis
+redis:
+  replicas: 0
+
+nginx:
+  replicas: 2
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "400m"
+  service:
+    port: 80
+    type: LoadBalancer
+    # Cloud-specific annotations examples:
+    # Uncomment and customize based on your cloud provider
+    #
+    # AWS EKS with NLB:
+    # annotations:
+    #   service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    #   service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    #   service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    #   service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:region:account:certificate/cert-id"
+    #   service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+    #
+    # GCP GKE with Cloud Load Balancing:
+    # annotations:
+    #   cloud.google.com/load-balancer-type: "External"
+    #   networking.gke.io/load-balancer-type: "External"
+    #
+    # Azure AKS with Azure Load Balancer:
+    # annotations:
+    #   service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+    #   service.beta.kubernetes.io/azure-dns-label-name: "openops-prod"

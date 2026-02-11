@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.nginx.name }}
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "nginx") | nindent 4 }}
+  {{- with .Values.nginx.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.nginx.service.type }}
+  ports:
+  - port: {{ .Values.nginx.service.port }}
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    {{- include "openops.componentSelectorLabels" (dict "root" . "component" "nginx") | nindent 4 }}

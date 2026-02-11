@@ -1,0 +1,48 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "openops.fullname" . }}
+  labels:
+    {{- include "openops.labels" . | nindent 4 }}
+  annotations:
+    {{- if .Values.ingress.className }}
+    # Retained for backward compatibility with Kubernetes versions prior to 1.18.
+    kubernetes.io/ingress.class: {{ .Values.ingress.className }}
+    {{- end }}
+    {{- if and .Values.ingress.tlsConfig.enabled (include "openops.isNginxIngress" .) }}
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "{{ .Values.ingress.tlsConfig.sslProtocols }}"
+    nginx.ingress.kubernetes.io/ssl-ciphers: "{{ .Values.ingress.tlsConfig.sslCiphers }}"
+    nginx.ingress.kubernetes.io/hsts: "true"
+    nginx.ingress.kubernetes.io/hsts-max-age: "{{ .Values.ingress.tlsConfig.hstsMaxAge }}"
+    nginx.ingress.kubernetes.io/hsts-include-subdomains: "{{ .Values.ingress.tlsConfig.hstsIncludeSubdomains }}"
+    nginx.ingress.kubernetes.io/hsts-preload: "{{ .Values.ingress.tlsConfig.hstsPreload }}"
+    {{- end }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if .Values.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{- end }}
+  {{- if include "openops.isHttps" . }}
+  tls:
+  - hosts:
+    - {{ include "openops.hostname" . | quote }}
+    secretName: {{ .Values.ingress.tlsSecretName | default "openops-tls" }}
+  {{- end }}
+  rules:
+  - host: {{ include "openops.hostname" . | quote }}
+    http:
+      paths:
+      {{- range (index .Values.ingress.hosts 0).paths }}
+      - path: {{ .path }}
+        pathType: {{ .pathType | default "Prefix" }}
+        backend:
+          service:
+            name: {{ .serviceName }}
+            port:
+              number: {{ .servicePort }}
+      {{- end }}
+{{- end }}

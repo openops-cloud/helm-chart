@@ -1,0 +1,15 @@
+# Patterns to ignore when packaging this chart
+.DS_Store
+.git/
+.hg/
+.svn/
+.idea/
+.vscode/
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+
+# Local override values should never be bundled
+values.overrides.yaml

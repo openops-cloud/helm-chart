@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-script
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
+data:
+  init-db.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "[START] creating database for analytics and tables..."
+
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
+        SELECT 'CREATE DATABASE analytics'
+        WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'analytics')\\gexec
+        SELECT 'CREATE DATABASE tables'
+        WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'tables')\\gexec
+    EOSQL
+
+    echo "[COMPLETE] creating database for analytics and tables ..."

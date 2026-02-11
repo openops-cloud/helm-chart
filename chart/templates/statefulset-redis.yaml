@@ -1,0 +1,165 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.redis.name }}
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "redis") | nindent 4 }}
+    {{- with .Values.global.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.global.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  serviceName: {{ .Values.redis.name }}-headless
+  replicas: {{ .Values.redis.replicas }}
+  podManagementPolicy: {{ .Values.redis.podManagementPolicy | default "OrderedReady" }}
+  updateStrategy:
+    type: {{ .Values.redis.updateStrategy.type | default "RollingUpdate" }}
+    {{- if eq (.Values.redis.updateStrategy.type | default "RollingUpdate") "RollingUpdate" }}
+    rollingUpdate:
+      partition: {{ .Values.redis.updateStrategy.rollingUpdate.partition | default 0 }}
+    {{- end }}
+  selector:
+    matchLabels:
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "redis") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "openops.componentSelectorLabels" (dict "root" . "component" "redis") | nindent 8 }}
+        {{- with .Values.global.commonLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- include "openops.prometheusAnnotations" (dict "root" . "component" "redis") | nindent 8 }}
+        {{- with .Values.redis.backup.annotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.global.commonAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "openops.serviceAccountName" (dict "root" . "component" "redis") }}
+      {{- include "openops.imagePullSecrets" . | nindent 6 }}
+      {{- include "openops.podSecurityContext" (dict "root" . "component" "redis") | nindent 6 }}
+      {{- include "openops.priorityClassName" . | nindent 6 }}
+      {{- include "openops.terminationGracePeriodSeconds" . | nindent 6 }}
+      {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "redis") | nindent 6 }}
+      {{- include "openops.componentAffinity" (dict "root" . "component" "redis") | nindent 6 }}
+      {{- include "openops.nodeSelector" . | nindent 6 }}
+      {{- include "openops.tolerations" . | nindent 6 }}
+      {{- include "openops.initContainers" (dict "root" . "component" "redis") | nindent 6 }}
+      containers:
+      - name: {{ .Values.redis.name }}
+        image: {{ .Values.redis.image }}:{{ .Values.redis.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- include "openops.containerSecurityContext" (dict "root" .) | nindent 8 }}
+        {{- if or .Values.redis.auth.enabled .Values.redis.tls.enabled .Values.redis.persistence.enabled }}
+        command:
+        - redis-server
+        {{- if .Values.redis.auth.enabled }}
+        - --requirepass
+        - $(REDIS_PASSWORD)
+        {{- end }}
+        {{- if .Values.redis.tls.enabled }}
+        - --tls-port
+        - "6379"
+        - --port
+        - "0"
+        - --tls-cert-file
+        - /etc/redis/certs/tls.crt
+        - --tls-key-file
+        - /etc/redis/certs/tls.key
+        {{- if .Values.redis.tls.caFile }}
+        - --tls-ca-cert-file
+        - /etc/redis/certs/ca.crt
+        {{- end }}
+        - --tls-auth-clients
+        - {{ .Values.redis.tls.authClients | default "no" | quote }}
+        {{- end }}
+        {{- if .Values.redis.persistence.enabled }}
+        - --appendonly
+        - "yes"
+        {{- end }}
+        {{- end }}
+        env:
+        {{- if .Values.redis.auth.enabled }}
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.redis.auth.existingSecret | default "redis-auth" }}
+              key: {{ .Values.redis.auth.passwordKey | default "password" }}
+        {{- end }}
+        ports:
+        - containerPort: 6379
+          name: redis
+{{- with .Values.redis.resources }}
+        resources:
+{{ toYaml . | nindent 10 }}
+{{- end }}
+        readinessProbe:
+          exec:
+            command:
+            {{- if .Values.redis.auth.enabled }}
+            - sh
+            - -c
+            - export REDISCLI_AUTH=$REDIS_PASSWORD && redis-cli ping
+            {{- else }}
+            - redis-cli
+            - ping
+            {{- end }}
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command:
+            {{- if .Values.redis.auth.enabled }}
+            - sh
+            - -c
+            - export REDISCLI_AUTH=$REDIS_PASSWORD && redis-cli ping
+            {{- else }}
+            - redis-cli
+            - ping
+            {{- end }}
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        {{- include "openops.lifecyclePreStop" . | nindent 8 }}
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        {{- if .Values.redis.tls.enabled }}
+        - name: redis-tls
+          mountPath: /etc/redis/certs
+          readOnly: true
+        {{- end }}
+      volumes:
+      {{- if .Values.redis.tls.enabled }}
+      - name: redis-tls
+        secret:
+          secretName: {{ .Values.redis.tls.existingSecret | default "redis-tls" }}
+          defaultMode: 0400
+      {{- end }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      labels:
+        {{- include "openops.componentLabels" (dict "root" . "component" "redis") | nindent 8 }}
+      {{- with .Values.redis.storage.annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      accessModes:
+        {{- toYaml .Values.redis.storage.accessModes | nindent 8 }}
+      volumeMode: {{ .Values.redis.storage.volumeMode }}
+      resources:
+        requests:
+          storage: {{ .Values.redis.storage.size }}
+      {{- if .Values.redis.storage.storageClass }}
+      storageClassName: {{ .Values.redis.storage.storageClass }}
+      {{- end }}
