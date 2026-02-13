@@ -11,8 +11,8 @@
       "properties": {
         "version": {
           "type": "string",
-          "description": "Immutable version tag for app and engine images",
-          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.-]+)?$"
+          "description": "Immutable version tag for app and engine images (semver or 8-char git hash)",
+          "pattern": "^([0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.-]+)?|[0-9a-fA-F]{8})$"
         }
       }
     },
