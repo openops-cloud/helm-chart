@@ -45,6 +45,10 @@
         "image": {
           "type": "string"
         },
+        "repository": {
+          "type": "string",
+          "description": "Override global image.repository for app (empty = use global)"
+        },
         "replicas": {
           "type": "integer",
           "minimum": 0
@@ -61,6 +65,10 @@
         "image": {
           "type": "string"
         },
+        "repository": {
+          "type": "string",
+          "description": "Override global image.repository for engine (empty = use global)"
+        },
         "replicas": {
           "type": "integer",
           "minimum": 0
@@ -76,6 +84,10 @@
         },
         "image": {
           "type": "string"
+        },
+        "repository": {
+          "type": "string",
+          "description": "Image repository for tables (defaults to public.ecr.aws/openops)"
         },
         "tag": {
           "type": "string",
@@ -97,6 +109,10 @@
         },
         "image": {
           "type": "string"
+        },
+        "repository": {
+          "type": "string",
+          "description": "Image repository for analytics (defaults to public.ecr.aws/openops)"
         },
         "tag": {
           "type": "string",

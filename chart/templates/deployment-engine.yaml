@@ -47,7 +47,7 @@ spec:
       {{- include "openops.initContainers" (dict "root" . "component" "engine") | nindent 6 }}
       containers:
         - name: {{ .Values.engine.name }}
-          image: "{{ .Values.image.repository }}/{{ .Values.engine.image }}:{{ .Values.global.version }}"
+          image: "{{ include "openops.imageRepository" (dict "root" . "component" "engine") }}/{{ .Values.engine.image }}:{{ .Values.global.version }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- include "openops.containerSecurityContext" (dict "root" .) | nindent 10 }}
           command: [ "/bin/sh", "-c", "cp -r /var/tmp-base/. /tmp/ && node main.js" ]

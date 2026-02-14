@@ -559,3 +559,19 @@ Check if public URL uses HTTPS
 true
 {{- end -}}
 {{- end }}
+
+{{/*
+Get image repository for a component
+Expected dict: { "root": $, "component": "app" }
+Returns the repository to use, either component-specific or global
+*/}}
+{{- define "openops.imageRepository" -}}
+{{- $root := .root -}}
+{{- $component := .component -}}
+{{- $componentConfig := index $root.Values $component -}}
+{{- if and $componentConfig.repository (ne $componentConfig.repository "") -}}
+{{- $componentConfig.repository -}}
+{{- else -}}
+{{- $root.Values.image.repository -}}
+{{- end -}}
+{{- end }}

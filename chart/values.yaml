@@ -164,6 +164,7 @@ secretEnv:
 app:
   name: openops-app
   image: openops-app
+  repository: ""  # Override global image.repository (empty = use global)
   replicas: 2  # Minimum 2 for high availability
   resources:
     requests:
@@ -199,6 +200,7 @@ app:
 engine:
   name: openops-engine
   image: openops-engine
+  repository: ""  # Override global image.repository (empty = use global)
   replicas: 2  # Minimum 2 for high availability
   resources:
     requests:
@@ -237,6 +239,7 @@ engine:
 tables:
   name: openops-tables
   image: openops-tables
+  repository: "public.ecr.aws/openops"  # Always use public ECR for tables
   tag: "0.2.17"
   replicas: 1
   resources:
@@ -299,6 +302,7 @@ tables:
 analytics:
   name: openops-analytics
   image: openops-analytics
+  repository: "public.ecr.aws/openops"  # Always use public ECR for analytics
   tag: "0.14.4"
   replicas: 1
   resources:

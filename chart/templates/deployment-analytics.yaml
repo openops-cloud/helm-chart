@@ -47,7 +47,7 @@ spec:
       {{- include "openops.initContainers" (dict "root" . "component" "analytics") | nindent 6 }}
       containers:
       - name: {{ .Values.analytics.name }}
-        image: "{{ .Values.image.repository }}/{{ .Values.analytics.image }}:{{ .Values.analytics.tag }}"
+        image: "{{ include "openops.imageRepository" (dict "root" . "component" "analytics") }}/{{ .Values.analytics.image }}:{{ .Values.analytics.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         {{- include "openops.containerSecurityContext" (dict "root" .) | nindent 8 }}
         env:
