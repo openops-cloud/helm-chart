@@ -299,7 +299,7 @@ tables:
 analytics:
   name: openops-analytics
   image: openops-analytics
-  tag: "0.14.1"
+  tag: "0.14.4"
   replicas: 1
   resources:
     requests:
