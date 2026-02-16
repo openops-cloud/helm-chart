@@ -147,7 +147,7 @@ Determine if an environment variable name should be treated as a secret.
 */}}
 {{- define "openops.isSecretKey" -}}
 {{- $key := upper . -}}
-{{- if or (contains "PASSWORD" $key) (contains "SECRET" $key) (contains "KEY" $key) -}}
+{{- if or (contains "PASSWORD" $key) (contains "SECRET" $key) (contains "KEY" $key) (contains "LOGZIO_TOKEN" $key) -}}
 true
 {{- else -}}
 false
