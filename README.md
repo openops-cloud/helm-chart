@@ -24,6 +24,18 @@ This repository contains the Helm chart that deploys the OpenOps application sta
 - **redis**: Redis cache.
 
 ## Quick start
+
+### Install from OCI registry (recommended)
+
+```bash
+helm install openops oci://public.ecr.aws/openops/helm \
+  --version <VERSION> \
+  -n openops --create-namespace \
+  -f values.overrides.yaml
+```
+
+### Install from source
+
 1. Copy the sample overrides file and adjust it to match your environment:
    ```bash
    cp chart/values.overrides-example.yaml chart/values.overrides.yaml
