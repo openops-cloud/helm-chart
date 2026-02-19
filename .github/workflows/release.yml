@@ -65,7 +65,7 @@ jobs:
           aws ecr-public get-login-password --region ${{ vars.ECR_PUBLIC_REGION }} \
             | helm registry login --username AWS --password-stdin public.ecr.aws
           helm push "$CHART_PACKAGE" oci://public.ecr.aws/openops/helm
-          echo "- ✅ Pushed \`oci://public.ecr.aws/openops/helm:${CHART_VERSION}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Pushed \`oci://public.ecr.aws/openops/helm/openops:${CHART_VERSION}\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
@@ -89,5 +89,5 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Install with:" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "helm install openops oci://public.ecr.aws/openops/helm --version $CHART_VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "helm install openops oci://public.ecr.aws/openops/helm/openops --version $CHART_VERSION" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY

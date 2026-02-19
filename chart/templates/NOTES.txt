@@ -118,7 +118,7 @@ Useful commands:
   helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
 
   # Upgrade deployment
-  helm upgrade {{ .Release.Name }} oci://public.ecr.aws/openops/helm -n {{ .Release.Namespace }} -f values.overrides.yaml
+  helm upgrade {{ .Release.Name }} oci://public.ecr.aws/openops/helm/openops -n {{ .Release.Namespace }} -f values.overrides.yaml
 
   # Uninstall
   helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}

@@ -28,7 +28,7 @@ This repository contains the Helm chart that deploys the OpenOps application sta
 ### Install from OCI registry (recommended)
 
 ```bash
-helm install openops oci://public.ecr.aws/openops/helm \
+helm install openops oci://public.ecr.aws/openops/helm/openops \
   --version <VERSION> \
   -n openops --create-namespace \
   -f values.overrides.yaml
