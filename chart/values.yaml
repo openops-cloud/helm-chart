@@ -303,7 +303,7 @@ analytics:
   name: openops-analytics
   image: openops-analytics
   repository: "public.ecr.aws/openops"  # Always use public ECR for analytics
-  tag: "0.14.4"
+  tag: "0.14.5"
   replicas: 1
   resources:
     requests:
