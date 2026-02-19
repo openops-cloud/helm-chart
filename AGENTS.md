@@ -41,11 +41,11 @@
   - `draft` (boolean, default `true`): When true, appends `-draft` to the chart version (e.g., `0.6.15-draft`). Draft versions are overwritable on ECR; final versions are immutable.
 - Also triggered cross-repo by `openops-cloud/openops` release workflow.
 - Creates a GitHub release (draft or published) with the packaged `.tgz` as an asset.
-- **Do not bump versions in `Chart.yaml` or `values.yaml` manually**—the release workflow sets them at build time. The repo defaults are `0.0.1-dev` / `0.0.1-dev`.
+- **Do not bump versions in `Chart.yaml` or `values.yaml` manually**—the release workflow sets them at build time. The repo defaults are `version: 0.0.1-dev` and `appVersion: 0.0.1-dev`.
 - Required secrets: `ECR_ACCESS_KEY_ID`, `ECR_SECRET_ACCESS_KEY`; required vars: `ECR_PUBLIC_REGION`.
 
 ## Versioning strategy
-- All versions are unified: chart version = appVersion = `global.version` (image tags) = OpenOps release version.
+- All *release* versions are unified: chart version = appVersion = `global.version` (image tags) = OpenOps release version. The in-repo development defaults (`0.0.1-dev`) are normalized by the release workflow.
 - Exception: draft releases use `{version}-draft` for the chart version only; `appVersion` and image tags use the clean version.
 - The chart is published to `oci://public.ecr.aws/openops/helm/openops`. Users install with:
   ```

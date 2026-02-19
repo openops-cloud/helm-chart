@@ -49,8 +49,10 @@ jobs:
       - name: Package chart
         run: |
           set -euo pipefail
-          helm package chart --version "$CHART_VERSION" --app-version "$APP_VERSION"
-          echo "CHART_PACKAGE=openops-${CHART_VERSION}.tgz" >> $GITHUB_ENV
+          pkg_output=$(helm package chart --version "$CHART_VERSION" --app-version "$APP_VERSION")
+          echo "$pkg_output"
+          chart_package=$(printf '%s\n' "$pkg_output" | awk '/Successfully packaged chart and saved it to:/ {print $NF}')
+          echo "CHART_PACKAGE=$chart_package" >> "$GITHUB_ENV"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4

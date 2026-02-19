@@ -3,5 +3,5 @@ name: openops
 description: A Helm chart for the OpenOps platform
 type: application
 version: 0.0.1-dev
-appVersion: "latest"
+appVersion: "0.0.1-dev"
 icon: https://openops.com/favicon.ico
