@@ -1,5 +1,5 @@
 global:
-  version: "0.6.14"
+  version: "0.0.1-dev"
 
   # Public URL - single source of truth for domain configuration
   # This is used to derive ingress host and all *_PUBLIC_URL environment variables

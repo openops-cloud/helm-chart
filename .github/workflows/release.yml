@@ -18,6 +18,78 @@ jobs:
   release:
     name: Package and publish Helm chart
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      CHART_VERSION: ${{ inputs.draft && format('{0}-draft', inputs.version) || inputs.version }}
+      APP_VERSION: ${{ inputs.version }}
     steps:
-      - name: Placeholder
-        run: echo "This is a scaffold. The full implementation is in PR #23."
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+
+      - name: Set chart version and appVersion
+        run: |
+          set -euo pipefail
+          sed -i "s/^version:.*/version: $CHART_VERSION/" chart/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"$APP_VERSION\"/" chart/Chart.yaml
+          sed -i 's/^  version: .*/  version: "'"$APP_VERSION"'"/' chart/values.yaml
+          echo "### Chart.yaml" >> $GITHUB_STEP_SUMMARY
+          echo '```yaml' >> $GITHUB_STEP_SUMMARY
+          cat chart/Chart.yaml >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Lint chart
+        run: helm lint chart
+
+      - name: Package chart
+        run: |
+          set -euo pipefail
+          pkg_output=$(helm package chart --version "$CHART_VERSION" --app-version "$APP_VERSION")
+          echo "$pkg_output"
+          chart_package=$(printf '%s\n' "$pkg_output" | awk '/Successfully packaged chart and saved it to:/ {print $NF}')
+          echo "CHART_PACKAGE=$chart_package" >> "$GITHUB_ENV"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.ECR_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.ECR_PUBLIC_REGION }}
+
+      - name: Push chart to public ECR
+        run: |
+          set -euo pipefail
+          aws ecr-public get-login-password --region ${{ vars.ECR_PUBLIC_REGION }} \
+            | helm registry login --username AWS --password-stdin public.ecr.aws
+          helm push "$CHART_PACKAGE" oci://public.ecr.aws/openops/helm
+          echo "- ✅ Pushed \`oci://public.ecr.aws/openops/helm/openops:${CHART_VERSION}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          target_commitish: ${{ github.sha }}
+          tag_name: ${{ env.CHART_VERSION }}
+          name: openops-${{ env.CHART_VERSION }}
+          generate_release_notes: true
+          draft: ${{ inputs.draft }}
+          files: ${{ env.CHART_PACKAGE }}
+
+      - name: Write summary
+        run: |
+          echo "### Helm Chart Release" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Chart version | \`$CHART_VERSION\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| App version | \`$APP_VERSION\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Draft | \`${{ inputs.draft }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Install with:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "helm install openops oci://public.ecr.aws/openops/helm/openops --version $CHART_VERSION" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
