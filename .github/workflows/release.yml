@@ -1,0 +1,23 @@
+name: Release Helm Chart
+
+run-name: Release Helm chart ${{ inputs.version }}${{ inputs.draft && '-draft' || '' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: Release version (e.g., 0.6.15). Used for chart version, appVersion, and image tags.
+        required: true
+      draft:
+        type: boolean
+        description: Create a draft release (chart version gets -draft suffix)
+        default: true
+
+jobs:
+  release:
+    name: Package and publish Helm chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "This is a scaffold. The full implementation is in PR #23."
