@@ -13,7 +13,8 @@ metadata:
   {{- end }}
 spec:
   replicas: {{ .Values.tables.replicas }}
-  {{- include "openops.deploymentStrategy" . | nindent 2 }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "openops.componentSelectorLabels" (dict "root" . "component" "tables") | nindent 6 }}
