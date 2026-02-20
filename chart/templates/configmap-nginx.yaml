@@ -20,6 +20,13 @@ data:
         client_body_buffer_size 128k;
         client_header_buffer_size 1k;
         large_client_header_buffers 4 16k;
+
+        {{- if include "openops.isHttps" . }}
+        # Redirect HTTP to HTTPS when behind a TLS-terminating load balancer
+        if ($http_x_forwarded_proto = "http") {
+            return 301 https://$host$request_uri;
+        }
+        {{- end }}
         
         # Security headers
         {{- if .Values.nginx.securityHeaders.enabled }}
