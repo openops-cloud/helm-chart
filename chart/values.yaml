@@ -538,7 +538,10 @@ nginx:
   securityHeaders:
     enabled: true
     xContentTypeOptions: "nosniff"
-    contentSecurityPolicy: "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:;"
+    contentSecurityPolicy: "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://login.openops.com https://assets.frontegg.com https://fonts.cdnfonts.com https://fonts.googleapis.com https://fonts.gstatic.com https://api.github.com https://app.openops.com https://cdn.jsdelivr.net"
+    # Additional domains to append to the CSP default-src directive
+    extraCspDomains: []
+    # - https://example.com
     permissionsPolicy: "geolocation=(), microphone=(), camera=()"
     referrerPolicy: "strict-origin-when-cross-origin"
   # Rate limiting - ENABLED BY DEFAULT for security

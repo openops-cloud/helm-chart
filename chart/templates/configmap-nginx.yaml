@@ -32,7 +32,7 @@ data:
         {{- if .Values.nginx.securityHeaders.enabled }}
         add_header X-Content-Type-Options "{{ .Values.nginx.securityHeaders.xContentTypeOptions }}" always;
         add_header X-Frame-Options "{{ .Values.nginx.securityHeaders.xFrameOptions }}" always;
-        add_header Content-Security-Policy "{{ .Values.nginx.securityHeaders.contentSecurityPolicy }}" always;
+        add_header Content-Security-Policy "{{ .Values.nginx.securityHeaders.contentSecurityPolicy }}{{- range .Values.nginx.securityHeaders.extraCspDomains }} {{ . }}{{- end }};" always;
         add_header Permissions-Policy "{{ .Values.nginx.securityHeaders.permissionsPolicy }}" always;
         add_header Referrer-Policy "{{ .Values.nginx.securityHeaders.referrerPolicy }}" always;
         {{- else }}
