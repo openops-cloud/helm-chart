@@ -155,12 +155,11 @@ openopsEnv:
   OPS_SUBAGENTS_ENABLED: "false"
   OPS_SUBAGENT_EXECUTOR_TYPE: "k8s"
   OPS_SUBAGENT_K8S_NAMESPACE: "{{ .Release.Namespace }}"
-  OPS_SUBAGENT_RUNNER_IMAGE: "{{ .Values.image.repository }}/openops-subagent-runner:{{ .Values.global.version }}"
-  OPS_SUBAGENT_S3_BUCKET: "subagent-runner"
-  OPS_SUBAGENT_S3_REGION: "eu-central-1"
-  OPS_SUBAGENT_S3_ENDPOINT: "https://s3.eu-central-1.amazonaws.com"
-  OPS_SUBAGENT_S3_ACCESS_KEY: "secret"
-  OPS_SUBAGENT_S3_SECRET_KEY: "secret"
+  OPS_SUBAGENT_S3_BUCKET: ""
+  OPS_SUBAGENT_S3_REGION: ""
+  OPS_SUBAGENT_S3_ENDPOINT: ""
+  OPS_SUBAGENT_S3_ACCESS_KEY: ""  
+  OPS_SUBAGENT_S3_SECRET_KEY: ""
 
 secretEnv:
   create: true
