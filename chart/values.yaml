@@ -160,6 +160,7 @@ openopsEnv:
   OPS_SUBAGENT_S3_ENDPOINT: ""
   OPS_SUBAGENT_S3_ACCESS_KEY: ""  
   OPS_SUBAGENT_S3_SECRET_KEY: ""
+  OPS_SUBAGENT_RUNNER_IMAGE: "535002847982.dkr.ecr.us-east-2.amazonaws.com/openops/subagent-runner:main"
 
 secretEnv:
   create: true
