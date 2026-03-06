@@ -150,8 +150,6 @@ openopsEnv:
   OPS_SUBAGENT_S3_BUCKET: ""
   OPS_SUBAGENT_S3_REGION: ""
   OPS_SUBAGENT_S3_ENDPOINT: ""
-  OPS_SUBAGENT_S3_ACCESS_KEY: ""
-  OPS_SUBAGENT_S3_SECRET_KEY: ""
   OPS_SUBAGENT_RUNNER_IMAGE: "535002847982.dkr.ecr.us-east-2.amazonaws.com/openops/subagent-runner:main"
 
 # Secret environment variables
@@ -170,6 +168,8 @@ openopsEnvSecrets:
   OPS_LANGFUSE_PUBLIC_KEY: ""
   OPS_LANGFUSE_SECRET_KEY: ""
   OPS_SSO_FRONTEGG_PUBLIC_KEY: ""
+  OPS_SUBAGENT_S3_ACCESS_KEY: ""
+  OPS_SUBAGENT_S3_SECRET_KEY: ""
 
 secretEnv:
   create: true
