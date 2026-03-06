@@ -151,7 +151,7 @@ openopsEnv:
   OPS_SLACK_APP_SIGNING_SECRET: ""
   OPS_SLACK_ENABLE_INTERACTIONS: "true"
   # Superset secret key (analytics) - separate from OPS_ENCRYPTION_KEY
-  SUPERSET_SECRET_KEY: ""
+  SUPERSET_SECRET_KEY: "thisISaSECRET_1234"
 
 secretEnv:
   create: true
