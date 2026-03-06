@@ -208,13 +208,13 @@ Expected dict: { "key": "DATABASE_PASSWORD", "value": "{{ .Values.openopsEnv.OPS
 {{/*
 Collect ExternalSecret data entries for all secret keys in an env map.
 Emits YAML list items for keys detected by isSecretKey.
-Expected dict: { "root": $, "env": dict, "secretName": "my-secret" }
+Expected dict: { "env": dict, "secretName": "my-secret" }
 */}}
 {{- define "openops.collectSecretEntries" -}}
-{{- $root := .root -}}
 {{- $env := .env -}}
 {{- $secretName := .secretName -}}
-{{- range $k, $v := $env -}}
+{{- range $k := keys $env | sortAlpha -}}
+{{- $v := index $env $k -}}
 {{- if eq (include "openops.isSecretKey" $k) "true" }}
     - secretKey: {{ $k }}
       remoteRef:
