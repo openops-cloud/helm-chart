@@ -189,7 +189,42 @@ Expected dict: { "root": $, "env": dict }
 {{- end }}
 
 {{/*
-Render deployment strategy
+Resolve the AWS Secrets Manager property name for a secret key.
+For standalone keys (in openopsEnv), the property is the key itself.
+For derived keys (in tables/analytics/etc), the value is a template ref like
+"{{ .Values.openopsEnv.OPS_POSTGRES_PASSWORD }}" - extract the referenced key name.
+Expected dict: { "key": "DATABASE_PASSWORD", "value": "{{ .Values.openopsEnv.OPS_POSTGRES_PASSWORD }}" }
+*/}}
+{{- define "openops.secretPropertyName" -}}
+{{- $key := .key -}}
+{{- $value := .value | toString -}}
+{{- if contains ".Values.openopsEnv." $value -}}
+{{- $value | trimPrefix "{{" | trimPrefix " " | trimSuffix "}}" | trimSuffix " " | trimPrefix ".Values.openopsEnv." -}}
+{{- else -}}
+{{- $key -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Collect ExternalSecret data entries for all secret keys in an env map.
+Emits YAML list items for keys detected by isSecretKey.
+Expected dict: { "root": $, "env": dict, "secretName": "my-secret" }
+*/}}
+{{- define "openops.collectSecretEntries" -}}
+{{- $root := .root -}}
+{{- $env := .env -}}
+{{- $secretName := .secretName -}}
+{{- range $k, $v := $env -}}
+{{- if eq (include "openops.isSecretKey" $k) "true" }}
+    - secretKey: {{ $k }}
+      remoteRef:
+        key: {{ $secretName }}
+        property: {{ include "openops.secretPropertyName" (dict "key" $k "value" ($v | toString)) }}
+{{- end -}}
+{{- end -}}
+{{- end }}
+
+{{/*
 */}}
 {{- define "openops.deploymentStrategy" -}}
 {{- if .Values.global.strategy }}
