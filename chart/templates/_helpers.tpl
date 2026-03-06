@@ -173,6 +173,7 @@ Expected dict: { "root": $, "key": "ENV", "value": "value" }
     secretKeyRef:
       name: {{ include "openops.secretName" $root }}
       key: {{ $key }}
+      optional: true
 {{- else -}}
 - name: {{ $key }}
   value: {{ tpl (tpl $value $root) $root | quote }}
