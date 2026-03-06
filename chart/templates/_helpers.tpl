@@ -143,11 +143,16 @@ Secret name used to store sensitive environment variables.
 {{- end }}
 
 {{/*
-Determine if an environment variable name should be treated as a secret.
+Determine if an environment variable should be treated as a secret.
+A key is a secret if it exists in openopsEnvSecrets or its value references openopsEnvSecrets.
+Expected dict: { "root": $, "key": "ENV_VAR", "value": "some-value" }
 */}}
 {{- define "openops.isSecretKey" -}}
-{{- $key := upper . -}}
-{{- if or (contains "PASSWORD" $key) (contains "SECRET" $key) (contains "KEY" $key) (contains "LOGZIO_TOKEN" $key) -}}
+{{- $root := .root -}}
+{{- $key := .key -}}
+{{- $value := .value | default "" | toString -}}
+{{- $secrets := default (dict) $root.Values.openopsEnvSecrets -}}
+{{- if or (hasKey $secrets $key) (contains ".Values.openopsEnvSecrets." $value) -}}
 true
 {{- else -}}
 false
@@ -162,12 +167,13 @@ Expected dict: { "root": $, "key": "ENV", "value": "value" }
 {{- $root := .root -}}
 {{- $key := .key -}}
 {{- $value := .value -}}
-{{- if eq (include "openops.isSecretKey" $key) "true" -}}
+{{- if eq (include "openops.isSecretKey" (dict "root" $root "key" $key "value" $value)) "true" -}}
 - name: {{ $key }}
   valueFrom:
     secretKeyRef:
       name: {{ include "openops.secretName" $root }}
       key: {{ $key }}
+      optional: true
 {{- else -}}
 - name: {{ $key }}
   value: {{ tpl (tpl $value $root) $root | quote }}
@@ -189,7 +195,43 @@ Expected dict: { "root": $, "env": dict }
 {{- end }}
 
 {{/*
-Render deployment strategy
+Resolve the AWS Secrets Manager property name for a secret key.
+For standalone keys (in openopsEnvSecrets), the property is the key itself.
+For derived keys (in tables/analytics/etc), the value is a template ref like
+"{{ .Values.openopsEnvSecrets.OPS_POSTGRES_PASSWORD }}" - extract the referenced key name.
+Expected dict: { "key": "DATABASE_PASSWORD", "value": "{{ .Values.openopsEnvSecrets.OPS_POSTGRES_PASSWORD }}" }
+*/}}
+{{- define "openops.secretPropertyName" -}}
+{{- $key := .key -}}
+{{- $value := .value | toString -}}
+{{- if contains ".Values.openopsEnvSecrets." $value -}}
+{{- $value | trimPrefix "{{" | trimPrefix " " | trimSuffix "}}" | trimSuffix " " | trimPrefix ".Values.openopsEnvSecrets." -}}
+{{- else -}}
+{{- $key -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Collect ExternalSecret data entries for all secret keys in an env map.
+Emits YAML list items for keys that are secrets (in openopsEnvSecrets or referencing it).
+Expected dict: { "root": $, "env": dict, "secretName": "my-secret" }
+*/}}
+{{- define "openops.collectSecretEntries" -}}
+{{- $root := .root -}}
+{{- $env := .env -}}
+{{- $secretName := .secretName -}}
+{{- range $k := keys $env | sortAlpha -}}
+{{- $v := index $env $k -}}
+{{- if eq (include "openops.isSecretKey" (dict "root" $root "key" $k "value" ($v | toString))) "true" }}
+    - secretKey: {{ $k }}
+      remoteRef:
+        key: {{ $secretName }}
+        property: {{ include "openops.secretPropertyName" (dict "key" $k "value" ($v | toString)) }}
+{{- end -}}
+{{- end -}}
+{{- end }}
+
+{{/*
 */}}
 {{- define "openops.deploymentStrategy" -}}
 {{- if .Values.global.strategy }}
@@ -293,26 +335,26 @@ Validate that required secrets are configured - ALWAYS ENFORCED
 {{- /* Skip validation if using an external secret manager */ -}}
 {{- $usingExistingSecret := and .Values.secretEnv .Values.secretEnv.existingSecret (not .Values.secretEnv.create) -}}
 {{- if not $usingExistingSecret -}}
-{{- $encKey := .Values.openopsEnv.OPS_ENCRYPTION_KEY -}}
+{{- $encKey := .Values.openopsEnvSecrets.OPS_ENCRYPTION_KEY -}}
 {{- if not $encKey -}}
-{{- fail "ERROR: OPS_ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32" -}}
+{{- fail "ERROR: OPS_ENCRYPTION_KEY is required. Generate with: openssl rand -hex 16" -}}
 {{- end -}}
 {{- if ne (len $encKey) 32 -}}
 {{- fail "ERROR: OPS_ENCRYPTION_KEY must be exactly 32 hex characters" -}}
 {{- end -}}
-{{- if not .Values.openopsEnv.OPS_JWT_SECRET -}}
-{{- fail "ERROR: OPS_JWT_SECRET is required. Generate with: openssl rand -hex 32" -}}
+{{- if not .Values.openopsEnvSecrets.OPS_JWT_SECRET -}}
+{{- fail "ERROR: OPS_JWT_SECRET is required. Generate with: openssl rand -hex 16" -}}
 {{- end -}}
-{{- if not .Values.openopsEnv.OPS_OPENOPS_ADMIN_PASSWORD -}}
+{{- if not .Values.openopsEnvSecrets.OPS_OPENOPS_ADMIN_PASSWORD -}}
 {{- fail "ERROR: OPS_OPENOPS_ADMIN_PASSWORD is required. Use a strong password" -}}
 {{- end -}}
-{{- if not .Values.openopsEnv.OPS_POSTGRES_PASSWORD -}}
+{{- if not .Values.openopsEnvSecrets.OPS_POSTGRES_PASSWORD -}}
 {{- fail "ERROR: OPS_POSTGRES_PASSWORD is required. Use a strong password" -}}
 {{- end -}}
-{{- if not .Values.openopsEnv.OPS_ANALYTICS_ADMIN_PASSWORD -}}
+{{- if not .Values.openopsEnvSecrets.OPS_ANALYTICS_ADMIN_PASSWORD -}}
 {{- fail "ERROR: OPS_ANALYTICS_ADMIN_PASSWORD is required. Use a strong password" -}}
 {{- end -}}
-{{- if not .Values.openopsEnv.ANALYTICS_POWERUSER_PASSWORD -}}
+{{- if not .Values.openopsEnvSecrets.ANALYTICS_POWERUSER_PASSWORD -}}
 {{- fail "ERROR: ANALYTICS_POWERUSER_PASSWORD is required. Use a strong password" -}}
 {{- end -}}
 {{- end -}}
