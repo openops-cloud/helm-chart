@@ -336,13 +336,13 @@ Validate that required secrets are configured - ALWAYS ENFORCED
 {{- if not $usingExistingSecret -}}
 {{- $encKey := .Values.openopsEnvSecrets.OPS_ENCRYPTION_KEY -}}
 {{- if not $encKey -}}
-{{- fail "ERROR: OPS_ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32" -}}
+{{- fail "ERROR: OPS_ENCRYPTION_KEY is required. Generate with: openssl rand -hex 16" -}}
 {{- end -}}
 {{- if ne (len $encKey) 32 -}}
 {{- fail "ERROR: OPS_ENCRYPTION_KEY must be exactly 32 hex characters" -}}
 {{- end -}}
 {{- if not .Values.openopsEnvSecrets.OPS_JWT_SECRET -}}
-{{- fail "ERROR: OPS_JWT_SECRET is required. Generate with: openssl rand -hex 32" -}}
+{{- fail "ERROR: OPS_JWT_SECRET is required. Generate with: openssl rand -hex 16" -}}
 {{- end -}}
 {{- if not .Values.openopsEnvSecrets.OPS_OPENOPS_ADMIN_PASSWORD -}}
 {{- fail "ERROR: OPS_OPENOPS_ADMIN_PASSWORD is required. Use a strong password" -}}

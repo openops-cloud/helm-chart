@@ -145,9 +145,9 @@ openopsEnv:
 
 # Secret environment variables
 # Any var in this section is treated as a secret (stored in K8s Secret, referenced via secretKeyRef).
-# Generate secure values with: openssl rand -hex 32
+# Generate secure values with: openssl rand -hex 16
 openopsEnvSecrets:
-  OPS_ENCRYPTION_KEY: ""  # REQUIRED: 32-character hex string
+  OPS_ENCRYPTION_KEY: ""  # REQUIRED: 32-character hex string (openssl rand -hex 16)
   OPS_JWT_SECRET: ""      # REQUIRED: Random secret string
   OPS_OPENOPS_ADMIN_PASSWORD: ""  # REQUIRED: Strong password
   OPS_POSTGRES_PASSWORD: ""  # REQUIRED: Strong password
