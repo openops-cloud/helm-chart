@@ -6,6 +6,8 @@ global:
 
 openopsEnv:
   OPS_OPENOPS_ADMIN_EMAIL: openops@example.com
+
+openopsEnvSecrets:
   OPS_OPENOPS_ADMIN_PASSWORD: 9wqhK7jehmxAQlre
   OPS_ENCRYPTION_KEY: 7de996f020438444dc2c79e9b843805d
   OPS_JWT_SECRET: M72yCOp9riLjIDws
