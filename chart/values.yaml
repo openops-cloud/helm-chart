@@ -97,12 +97,8 @@ openopsEnv:
   OPS_OPENOPS_TABLES_VERSION: "{{ .Values.tables.tag }}"
   OPS_ANALYTICS_VERSION: "{{ .Values.analytics.tag }}"
 
-  # Authentication - REQUIRED, NO DEFAULTS
-  # Generate secure values with: openssl rand -hex 32
-  OPS_ENCRYPTION_KEY: ""  # REQUIRED: 32-character hex string
-  OPS_JWT_SECRET: ""      # REQUIRED: Random secret string
+  # Authentication
   OPS_OPENOPS_ADMIN_EMAIL: admin@openops.com
-  OPS_OPENOPS_ADMIN_PASSWORD: ""  # REQUIRED: Strong password
 
   # Telemetry
   OPS_LOG_LEVEL: info
@@ -125,7 +121,6 @@ openopsEnv:
   OPS_POSTGRES_HOST: '{{ include "openops.postgresHost" . }}'
   OPS_POSTGRES_PORT: '{{ include "openops.postgresPort" . }}'
   OPS_POSTGRES_USERNAME: postgres
-  OPS_POSTGRES_PASSWORD: ""  # REQUIRED: Strong password
 
   # Tables
   OPS_OPENOPS_TABLES_DATABASE_NAME: tables
@@ -139,8 +134,6 @@ openopsEnv:
   # Analytics
   OPS_ANALYTICS_PUBLIC_URL: '{{ include "openops.publicUrl" . }}'
   OPS_ANALYTICS_PRIVATE_URL: '{{ include "openops.analyticsServiceUrl" . }}'
-  OPS_ANALYTICS_ADMIN_PASSWORD: ""  # REQUIRED: Strong password
-  ANALYTICS_POWERUSER_PASSWORD: ""  # REQUIRED: Strong password
   ANALYTICS_ALLOW_ADHOC_SUBQUERY: "true"
 
   # AWS
@@ -148,7 +141,6 @@ openopsEnv:
 
   # Blocks custom settings
   OPS_CODE_BLOCK_MEMORY_LIMIT_IN_MB: "256"
-  OPS_SLACK_APP_SIGNING_SECRET: ""
   OPS_SLACK_ENABLE_INTERACTIONS: "true"
 
   # Subagent configuration
@@ -158,9 +150,26 @@ openopsEnv:
   OPS_SUBAGENT_S3_BUCKET: ""
   OPS_SUBAGENT_S3_REGION: ""
   OPS_SUBAGENT_S3_ENDPOINT: ""
-  OPS_SUBAGENT_S3_ACCESS_KEY: ""  
-  OPS_SUBAGENT_S3_SECRET_KEY: ""
   OPS_SUBAGENT_RUNNER_IMAGE: "535002847982.dkr.ecr.us-east-2.amazonaws.com/openops/subagent-runner:main"
+
+# Secret environment variables
+# Any var in this section is treated as a secret (stored in K8s Secret, referenced via secretKeyRef).
+# Generate secure values with: openssl rand -hex 16
+openopsEnvSecrets:
+  OPS_ENCRYPTION_KEY: ""  # REQUIRED: 32-character hex string (openssl rand -hex 16)
+  OPS_JWT_SECRET: ""      # REQUIRED: Random secret string
+  OPS_OPENOPS_ADMIN_PASSWORD: ""  # REQUIRED: Strong password
+  OPS_POSTGRES_PASSWORD: ""  # REQUIRED: Strong password
+  OPS_ANALYTICS_ADMIN_PASSWORD: ""  # REQUIRED: Strong password
+  ANALYTICS_POWERUSER_PASSWORD: ""  # REQUIRED: Strong password
+  OPS_SLACK_APP_SIGNING_SECRET: ""
+  SUPERSET_SECRET_KEY: "thisISaSECRET_1234"
+  OPS_LOGZIO_TOKEN: ""
+  OPS_LANGFUSE_PUBLIC_KEY: ""
+  OPS_LANGFUSE_SECRET_KEY: ""
+  OPS_SSO_FRONTEGG_PUBLIC_KEY: ""
+  OPS_SUBAGENT_S3_ACCESS_KEY: ""
+  OPS_SUBAGENT_S3_SECRET_KEY: ""
 
 secretEnv:
   create: true
@@ -287,10 +296,10 @@ tables:
     BASEROW_PUBLIC_URL: "{{ .Values.openopsEnv.OPS_OPENOPS_TABLES_PUBLIC_URL }}"
     BASEROW_PRIVATE_URL: "{{ .Values.openopsEnv.OPS_OPENOPS_TABLES_API_URL }}"
     BASEROW_EXTRA_ALLOWED_HOSTS: '*'
-    SECRET_KEY: "{{ .Values.openopsEnv.OPS_ENCRYPTION_KEY }}"
-    BASEROW_JWT_SIGNING_KEY: "{{ .Values.openopsEnv.OPS_JWT_SECRET }}"
+    SECRET_KEY: "{{ .Values.openopsEnvSecrets.OPS_ENCRYPTION_KEY }}"
+    BASEROW_JWT_SIGNING_KEY: "{{ .Values.openopsEnvSecrets.OPS_JWT_SECRET }}"
     BASEROW_ADMIN_USERNAME: "{{ .Values.openopsEnv.OPS_OPENOPS_ADMIN_EMAIL }}"
-    BASEROW_ADMIN_PASSWORD: "{{ .Values.openopsEnv.OPS_OPENOPS_ADMIN_PASSWORD }}"
+    BASEROW_ADMIN_PASSWORD: "{{ .Values.openopsEnvSecrets.OPS_OPENOPS_ADMIN_PASSWORD }}"
     BASEROW_REFRESH_TOKEN_LIFETIME_HOURS: "{{ .Values.openopsEnv.OPS_JWT_TOKEN_LIFETIME_HOURS }}"
     BASEROW_ACCESS_TOKEN_LIFETIME_MINUTES: "{{ .Values.openopsEnv.OPS_TABLES_TOKEN_LIFETIME_MINUTES }}"
     SYNC_TEMPLATES_ON_STARTUP: 'false'
@@ -300,7 +309,7 @@ tables:
     DATABASE_HOST: "{{ .Values.openopsEnv.OPS_POSTGRES_HOST }}"
     DATABASE_PORT: "{{ .Values.openopsEnv.OPS_POSTGRES_PORT }}"
     DATABASE_USER: "{{ .Values.openopsEnv.OPS_POSTGRES_USERNAME }}"
-    DATABASE_PASSWORD: "{{ .Values.openopsEnv.OPS_POSTGRES_PASSWORD }}"
+    DATABASE_PASSWORD: "{{ .Values.openopsEnvSecrets.OPS_POSTGRES_PASSWORD }}"
     REDIS_URL: '{{ include "openops.redisUrl" . }}'
   storage:
     size: 10Gi
@@ -347,17 +356,17 @@ analytics:
     port: 8088
     path: /health
   env:
-    ADMIN_PASSWORD: "{{ .Values.openopsEnv.OPS_ANALYTICS_ADMIN_PASSWORD }}"
-    POWERUSER_PASSWORD: "{{ .Values.openopsEnv.ANALYTICS_POWERUSER_PASSWORD }}"
+    ADMIN_PASSWORD: "{{ .Values.openopsEnvSecrets.OPS_ANALYTICS_ADMIN_PASSWORD }}"
+    POWERUSER_PASSWORD: "{{ .Values.openopsEnvSecrets.ANALYTICS_POWERUSER_PASSWORD }}"
     GUNICORN_LOGLEVEL: 'debug'
     DATABASE_DIALECT: 'postgresql'
     DATABASE_DB: 'analytics'
     DATABASE_HOST: "{{ .Values.openopsEnv.OPS_POSTGRES_HOST }}"
     DATABASE_PORT: "{{ .Values.openopsEnv.OPS_POSTGRES_PORT }}"
     DATABASE_USER: "{{ .Values.openopsEnv.OPS_POSTGRES_USERNAME }}"
-    DATABASE_PASSWORD: "{{ .Values.openopsEnv.OPS_POSTGRES_PASSWORD }}"
+    DATABASE_PASSWORD: "{{ .Values.openopsEnvSecrets.OPS_POSTGRES_PASSWORD }}"
     DATABASE_HOST_ALT: "{{ .Values.openopsEnv.OPS_OPENOPS_TABLES_DB_HOST }}"
-    SUPERSET_SECRET_KEY: "{{ .Values.openopsEnv.OPS_ENCRYPTION_KEY }}"
+    SUPERSET_SECRET_KEY: "{{ .Values.openopsEnvSecrets.SUPERSET_SECRET_KEY }}"
     SUPERSET_FEATURE_ALLOW_ADHOC_SUBQUERY: '"{{ .Values.openopsEnv.ANALYTICS_ALLOW_ADHOC_SUBQUERY }}"'
     REDIS_HOST: "{{ .Values.openopsEnv.OPS_REDIS_HOST }}"
     REDIS_PORT: "{{ .Values.openopsEnv.OPS_REDIS_PORT }}"
@@ -402,7 +411,7 @@ postgres:
   env:
     maxConnections: "300"
     POSTGRES_USER: "{{ .Values.openopsEnv.OPS_POSTGRES_USERNAME }}"
-    POSTGRES_PASSWORD: "{{ .Values.openopsEnv.OPS_POSTGRES_PASSWORD }}"
+    POSTGRES_PASSWORD: "{{ .Values.openopsEnvSecrets.OPS_POSTGRES_PASSWORD }}"
     POSTGRES_DB: "{{ .Values.openopsEnv.OPS_POSTGRES_DATABASE }}"
   # Authentication configuration
   auth:

@@ -147,7 +147,7 @@ spec:
   - metadata:
       name: data
       labels:
-        {{- include "openops.componentLabels" (dict "root" . "component" "postgres") | nindent 8 }}
+        {{- include "openops.componentSelectorLabels" (dict "root" . "component" "postgres") | nindent 8 }}
       {{- with .Values.postgres.storage.annotations }}
       annotations:
         {{- toYaml . | nindent 8 }}

@@ -148,7 +148,7 @@ spec:
   - metadata:
       name: data
       labels:
-        {{- include "openops.componentLabels" (dict "root" . "component" "redis") | nindent 8 }}
+        {{- include "openops.componentSelectorLabels" (dict "root" . "component" "redis") | nindent 8 }}
       {{- with .Values.redis.storage.annotations }}
       annotations:
         {{- toYaml . | nindent 8 }}

@@ -16,7 +16,7 @@ global:
     enabled: false
 
 # CI test secrets (not for production)
-openopsEnv:
+openopsEnvSecrets:
   OPS_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef"
   OPS_JWT_SECRET: "ci-jwt-secret-not-for-production"
   OPS_OPENOPS_ADMIN_PASSWORD: "ci-admin123"

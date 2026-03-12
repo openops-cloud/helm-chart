@@ -57,6 +57,7 @@ spec:
             - name: OPS_COMPONENT
               value: engine
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnv) | nindent 12 }}
+{{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnvSecrets) | nindent 12 }}
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.engine.env) | nindent 12 }}
           ports:
             - containerPort: 3005

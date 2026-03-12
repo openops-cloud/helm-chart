@@ -74,6 +74,7 @@ spec:
             - name: OPS_COMPONENT
               value: app
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnv) | nindent 12 }}
+{{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnvSecrets) | nindent 12 }}
           ports:
             - containerPort: 80
               name: http
