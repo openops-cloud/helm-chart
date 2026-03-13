@@ -1,4 +1,5 @@
-{{- if eq (index .Values.openopsEnv "OPS_SUBAGENTS_ENABLED") "true" }}
+{{- $openopsEnv := .Values.openopsEnv | default dict }}
+{{- if and (eq (toString (get $openopsEnv "OPS_SUBAGENTS_ENABLED")) "true") (eq (default "k8s" (get $openopsEnv "OPS_SUBAGENT_EXECUTOR_TYPE")) "k8s") }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
