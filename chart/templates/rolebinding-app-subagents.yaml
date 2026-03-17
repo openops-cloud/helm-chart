@@ -1,0 +1,25 @@
+{{- $openopsEnv := .Values.openopsEnv | default dict }}
+{{- if and (eq (toString (get $openopsEnv "OPS_SUBAGENTS_ENABLED")) "true") (eq (default "k8s" (get $openopsEnv "OPS_SUBAGENT_EXECUTOR_TYPE")) "k8s") }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "openops.fullname" . }}-subagent-manager
+  namespace: {{ .Values.subagents.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "app") | nindent 4 }}
+    {{- with .Values.global.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.global.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "openops.fullname" . }}-subagent-manager
+subjects:
+- kind: ServiceAccount
+  name: {{ include "openops.serviceAccountName" (dict "root" . "component" "app") }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}
