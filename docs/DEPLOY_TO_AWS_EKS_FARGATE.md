@@ -699,8 +699,7 @@ openopsEnv:
 
   # External ElastiCache Redis
   OPS_QUEUE_MODE: REDIS
-  OPS_REDIS_HOST: "REPLACE_WITH_REDIS_ENDPOINT"  # Replace with actual Redis endpoint
-  OPS_REDIS_PORT: "6379"
+  OPS_REDIS_URL: "redis://REPLACE_WITH_REDIS_ENDPOINT:6379/0"  # Replace with actual Redis endpoint
 
   # AWS-specific settings
   OPS_AWS_ENABLE_IMPLICIT_ROLE: "true"

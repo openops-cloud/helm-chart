@@ -92,6 +92,40 @@ Redis connection parameters
 {{- printf "redis://%s:%s/0" (include "openops.redisHost" .) (include "openops.redisPort" .) -}}
 {{- end }}
 
+{{- define "openops.resolvedRedisUrl" -}}
+{{- tpl .Values.openopsEnv.OPS_REDIS_URL . -}}
+{{- end }}
+
+{{- define "openops.redisUrlExtractHost" -}}
+{{- $url := urlParse (include "openops.resolvedRedisUrl" .) -}}
+{{- $host := $url.host -}}
+{{- if contains ":" $host -}}
+{{- first (splitList ":" $host) -}}
+{{- else -}}
+{{- $host -}}
+{{- end -}}
+{{- end }}
+
+{{- define "openops.redisUrlExtractPort" -}}
+{{- $url := urlParse (include "openops.resolvedRedisUrl" .) -}}
+{{- $host := $url.host -}}
+{{- if contains ":" $host -}}
+{{- last (splitList ":" $host) -}}
+{{- else -}}
+6379
+{{- end -}}
+{{- end }}
+
+{{- define "openops.redisUrlExtractDb" -}}
+{{- $url := urlParse (include "openops.resolvedRedisUrl" .) -}}
+{{- $path := trimPrefix "/" $url.path -}}
+{{- if $path -}}
+{{- $path -}}
+{{- else -}}
+0
+{{- end -}}
+{{- end }}
+
 {{/*
 PostgreSQL connection parameters
 */}}

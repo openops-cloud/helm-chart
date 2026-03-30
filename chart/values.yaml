@@ -112,8 +112,7 @@ openopsEnv:
 
   # Queue
   OPS_QUEUE_MODE: REDIS
-  OPS_REDIS_HOST: '{{ include "openops.redisHost" . }}'
-  OPS_REDIS_PORT: '{{ include "openops.redisPort" . }}'
+  OPS_REDIS_URL: '{{ include "openops.redisUrl" . }}'
 
   # Database
   OPS_DB_TYPE: POSTGRES
@@ -366,8 +365,10 @@ analytics:
     DATABASE_HOST_ALT: "{{ .Values.openopsEnv.OPS_OPENOPS_TABLES_DB_HOST }}"
     SUPERSET_SECRET_KEY: "{{ .Values.openopsEnvSecrets.SUPERSET_SECRET_KEY }}"
     SUPERSET_FEATURE_ALLOW_ADHOC_SUBQUERY: '"{{ .Values.openopsEnv.ANALYTICS_ALLOW_ADHOC_SUBQUERY }}"'
-    REDIS_HOST: "{{ .Values.openopsEnv.OPS_REDIS_HOST }}"
-    REDIS_PORT: "{{ .Values.openopsEnv.OPS_REDIS_PORT }}"
+    REDIS_HOST: '{{ include "openops.redisUrlExtractHost" . }}'
+    REDIS_PORT: '{{ include "openops.redisUrlExtractPort" . }}'
+    REDIS_CELERY_DB: '{{ include "openops.redisUrlExtractDb" . }}'
+    REDIS_RESULTS_DB: '{{ include "openops.redisUrlExtractDb" . }}'
 
 postgres:
   name: postgres

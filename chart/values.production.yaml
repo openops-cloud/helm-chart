@@ -37,8 +37,7 @@ openopsEnv:
 
   # Queue - externalized to managed Redis (e.g., AWS ElastiCache, GCP Memorystore, Azure Cache)
   OPS_QUEUE_MODE: REDIS
-  OPS_REDIS_HOST: "your-redis-cluster.cache.amazonaws.com"
-  OPS_REDIS_PORT: "6379"
+  OPS_REDIS_URL: "redis://your-redis-cluster.cache.amazonaws.com:6379/0"
 
   # AWS-specific settings for EKS deployments
   OPS_AWS_ENABLE_IMPLICIT_ROLE: "true"

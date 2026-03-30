@@ -638,8 +638,7 @@ openopsEnv:
   
   # Queue - AWS ElastiCache Redis
   OPS_QUEUE_MODE: REDIS
-  OPS_REDIS_HOST: "openops-production-redis.xxxxx.cache.amazonaws.com"
-  OPS_REDIS_PORT: "6379"
+  OPS_REDIS_URL: "redis://openops-production-redis.xxxxx.cache.amazonaws.com:6379/0"
   # If using auth token:
   # OPS_REDIS_PASSWORD: set via secretEnv
   

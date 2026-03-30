@@ -154,7 +154,7 @@ postgres:
 openopsEnv:
   OPS_PUBLIC_URL: "https://us-east.openops.example.com"
   OPS_POSTGRES_HOST: "rds-us-east-1.example.com"
-  OPS_REDIS_HOST: "elasticache-us-east-1.example.com"
+  OPS_REDIS_URL: "redis://elasticache-us-east-1.example.com:6379/0"
 
 nginx:
   service:
