@@ -38,7 +38,6 @@ data:
         {{- else }}
         add_header Referrer-Policy "no-referrer-when-downgrade";
         {{- end }}
-        add_header X-XSS-Protection "1; mode=block" always;
         
         ssi off;
         server_tokens off;
