@@ -631,14 +631,20 @@ serviceMonitor:
   # Example: release: prometheus
 
 # External Secrets Operator configuration (optional)
-# When enabled, secrets are synced from AWS Secrets Manager, GCP Secret Manager, etc.
+# When enabled, secrets are synced from AWS Secrets Manager, Azure Key Vault, GCP Secret Manager, etc.
 externalSecrets:
   enabled: false
+  # Provider: "aws" (default) or "azure-keyvault"
+  provider: "aws"
   secretName: ""
+  # Azure Key Vault configuration (only used when provider is "azure-keyvault")
+  azureKeyVault:
+    vaultUrl: ""  # e.g., "https://my-keyvault.vault.azure.net/"
   serviceAccount:
     create: false
     name: external-secrets-sa
     annotations: {}
+    labels: {}
 
 # Subagent configuration
 subagents:
