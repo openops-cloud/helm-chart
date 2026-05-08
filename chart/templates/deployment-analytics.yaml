@@ -31,6 +31,9 @@ spec:
         {{- with include "openops.secretChecksum" . }}
         checksum/secret-env: {{ . }}
         {{- end }}
+        {{- if .Values.analytics.configOverride }}
+        checksum/analytics-config: {{ include (print $.Template.BasePath "/configmap-analytics.yaml") . | sha256sum }}
+        {{- end }}
         {{- with .Values.global.commonAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -77,3 +80,13 @@ spec:
           timeoutSeconds: 8
           failureThreshold: 10
         {{- include "openops.lifecyclePreStop" . | nindent 8 }}
+{{ if .Values.analytics.configOverride }}
+        volumeMounts:
+        - name: config-override
+          mountPath: /app/pythonpath/superset_config_docker.py
+          subPath: superset_config_docker.py
+      volumes:
+      - name: config-override
+        configMap:
+          name: {{ .Values.analytics.name }}-config
+{{- end }}

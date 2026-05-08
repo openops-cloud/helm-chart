@@ -315,6 +315,80 @@ kubectl create secret tls openops-tls \
 ## Dependencies
 The deployments include health checks and readiness probes so dependent services wait until their prerequisites are available.
 
+## Private ECR access from non-AWS clusters
+
+When deploying on AKS or other non-AWS Kubernetes clusters that need to pull images from a private ECR registry, enable the ECR credential refresh CronJob:
+
+```yaml
+global:
+  imagePullSecrets:
+    - ecr-pull-secret
+
+ecrCredentialRefresh:
+  enabled: true
+  registry: "<registry>"
+  awsRegion: "us-east-2"
+  awsSecretName: "ecr-credentials"       # K8s secret with AWS access keys
+  imagePullSecretName: "ecr-pull-secret"  # Created/refreshed automatically
+```
+
+**Pre-requisite:** Create the AWS credentials secret (one-time):
+```bash
+kubectl create secret generic ecr-credentials \
+  -n openops \
+  --from-literal=AWS_ACCESS_KEY_ID=<YOUR_ECR_ACCESS_KEY_ID> \
+  --from-literal=AWS_SECRET_ACCESS_KEY=<YOUR_ECR_SECRET_ACCESS_KEY>
+```
+
+The IAM user needs only `ecr:GetAuthorizationToken`, `ecr:BatchGetImage`, and `ecr:GetDownloadUrlForLayer` permissions.
+
+**How it works:**
+- A Helm post-install/post-upgrade hook creates the pull secret immediately on deploy
+- A CronJob refreshes the ECR token every 6 hours (tokens expire after 12h)
+- All deployments reference the pull secret via `global.imagePullSecrets`
+
+## Analytics (Superset) configuration override
+
+The analytics component is based on Apache Superset. To override its Python configuration (e.g., for Redis SSL/auth), use `analytics.configOverride`:
+
+```yaml
+analytics:
+  env:
+    REDIS_HOST: "my-redis.example.com"
+    REDIS_PORT: "6380"
+    REDIS_PASSWORD: "my-password"
+    REDIS_SSL: "true"
+  configOverride: |
+    import os
+
+    REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+    REDIS_PORT = os.getenv("REDIS_PORT", "6379")
+    REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
+    REDIS_SSL = os.getenv("REDIS_SSL", "false").lower() == "true"
+
+    REDIS_SCHEME = "rediss" if REDIS_SSL else "redis"
+    REDIS_AUTH = f"default:{REDIS_PASSWORD}@" if REDIS_PASSWORD else ""
+    REDIS_BASE_URL = f"{REDIS_SCHEME}://{REDIS_AUTH}{REDIS_HOST}:{REDIS_PORT}"
+
+    CACHE_CONFIG = {
+        "CACHE_TYPE": "RedisCache",
+        "CACHE_DEFAULT_TIMEOUT": 300,
+        "CACHE_KEY_PREFIX": "superset_",
+        "CACHE_REDIS_URL": f"{REDIS_BASE_URL}/0",
+    }
+    DATA_CACHE_CONFIG = CACHE_CONFIG
+
+    class CeleryConfig:
+        broker_url = f"{REDIS_BASE_URL}/0"
+        result_backend = f"{REDIS_BASE_URL}/0"
+        worker_prefetch_multiplier = 1
+        task_acks_late = False
+
+    CELERY_CONFIG = CeleryConfig
+```
+
+This mounts the config as `/app/pythonpath/superset_config_docker.py` inside the container, which is imported by the base Superset config and overrides cache/Celery settings.
+
 ## Topology and rollout safeguards
 The chart provides built-in safeguards to avoid single-node concentration and ensure safe rolling updates:
 
@@ -478,7 +552,52 @@ secretEnv:
 
 Create secrets using one of these methods:
 
-**External Secrets Operator:**
+**External Secrets Operator (AWS Secrets Manager):**
+
+The chart has built-in support for External Secrets with AWS Secrets Manager. Enable it in your values:
+```yaml
+externalSecrets:
+  enabled: true
+  provider: "aws"  # default
+  secretName: "my-aws-secret"  # Name in AWS Secrets Manager
+  serviceAccount:
+    create: true
+    name: external-secrets-sa
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::123456789:role/external-secrets-role
+
+secretEnv:
+  create: false
+  existingSecret: openops-env
+```
+
+**External Secrets Operator (Azure Key Vault):**
+
+For Azure AKS deployments using Workload Identity:
+```yaml
+externalSecrets:
+  enabled: true
+  provider: "azure-keyvault"
+  azureKeyVault:
+    vaultUrl: "https://my-keyvault.vault.azure.net/"
+    tenantId: "<azure-ad-tenant-id>"
+  secretName: "my-keyvault-secret"
+  infraSecretName: "infra-secrets"   # Optional: Terraform-managed secret
+  appSecretName: "app-secrets"       # Optional: Manually-managed secret
+  serviceAccount:
+    create: true
+    name: external-secrets-sa
+    annotations:
+      azure.workload.identity/client-id: "<managed-identity-client-id>"
+    labels:
+      azure.workload.identity/use: "true"
+
+secretEnv:
+  create: false
+  existingSecret: openops-env
+```
+
+**External Secrets Operator (manual):**
 ```yaml
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret

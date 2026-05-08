@@ -216,14 +216,19 @@ Expected dict: { "root": $, "key": "ENV", "value": "value" }
 
 {{/*
 Render environment variables from a map using openops.envVar.
-Expected dict: { "root": $, "env": dict }
+Expected dict: { "root": $, "env": dict, "skipDuplicateSecrets": bool (optional) }
+When skipDuplicateSecrets is true, keys already present in openopsEnvSecrets are skipped.
 */}}
 {{- define "openops.renderEnv" -}}
 {{- $root := .root -}}
 {{- $env := .env -}}
+{{- $skipDuplicateSecrets := .skipDuplicateSecrets | default false -}}
+{{- $secrets := default (dict) $root.Values.openopsEnvSecrets -}}
 {{- if $env }}
 {{- range $k, $v := $env }}
+{{- if or (not $skipDuplicateSecrets) (not (hasKey $secrets $k)) }}
 {{ include "openops.envVar" (dict "root" $root "key" $k "value" $v) }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -254,12 +259,28 @@ Expected dict: { "root": $, "env": dict, "secretName": "my-secret" }
 {{- $root := .root -}}
 {{- $env := .env -}}
 {{- $secretName := .secretName -}}
+{{- $infraSecretName := "" -}}
+{{- $appSecretName := "" -}}
+{{- if $root.Values.externalSecrets.infraSecretName -}}
+  {{- $infraSecretName = $root.Values.externalSecrets.infraSecretName -}}
+  {{- $appSecretName = $root.Values.externalSecrets.appSecretName -}}
+{{- end -}}
+{{- $infraKeys := list "OPS_POSTGRES_PASSWORD" "OPS_REDIS_URL" "OPS_REDIS_HOST" "OPS_REDIS_PASSWORD" -}}
 {{- range $k := keys $env | sortAlpha -}}
 {{- $v := index $env $k -}}
 {{- if eq (include "openops.isSecretKey" (dict "root" $root "key" $k "value" ($v | toString))) "true" }}
+{{- $remoteSecret := $secretName -}}
+{{- if $infraSecretName -}}
+  {{- $propName := include "openops.secretPropertyName" (dict "key" $k "value" ($v | toString)) -}}
+  {{- if has $propName $infraKeys -}}
+    {{- $remoteSecret = $infraSecretName -}}
+  {{- else if $appSecretName -}}
+    {{- $remoteSecret = $appSecretName -}}
+  {{- end -}}
+{{- end }}
     - secretKey: {{ $k }}
       remoteRef:
-        key: {{ $secretName }}
+        key: {{ $remoteSecret }}
         property: {{ include "openops.secretPropertyName" (dict "key" $k "value" ($v | toString)) }}
 {{- end -}}
 {{- end -}}
