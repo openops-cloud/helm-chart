@@ -67,13 +67,14 @@ spec:
                 - FOWNER
                 - SETUID
                 - SETGID
+                - NET_BIND_SERVICE
           {{- end }}
           env:
             - name: NODE_OPTIONS
               value: "--no-node-snapshot"
             - name: OPS_COMPONENT
               value: app
-{{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnv) | nindent 12 }}
+{{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnv "skipDuplicateSecrets" true) | nindent 12 }}
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnvSecrets) | nindent 12 }}
           ports:
             - containerPort: 80

@@ -1,0 +1,11 @@
+{{- if .Values.analytics.configOverride }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.analytics.name }}-config
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "analytics") | nindent 4 }}
+data:
+  superset_config_docker.py: |
+{{ .Values.analytics.configOverride | indent 4 }}
+{{- end }}

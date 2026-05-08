@@ -367,8 +367,13 @@ analytics:
     SUPERSET_FEATURE_ALLOW_ADHOC_SUBQUERY: '"{{ .Values.openopsEnv.ANALYTICS_ALLOW_ADHOC_SUBQUERY }}"'
     REDIS_HOST: '{{ include "openops.redisUrlExtractHost" . }}'
     REDIS_PORT: '{{ include "openops.redisUrlExtractPort" . }}'
+    REDIS_USERNAME: ''
+    REDIS_PASSWORD: ''
+    REDIS_SSL: 'false'
     REDIS_CELERY_DB: '{{ include "openops.redisUrlExtractDb" . }}'
     REDIS_RESULTS_DB: '{{ include "openops.redisUrlExtractDb" . }}'
+  # Override superset_config_docker.py (mounted into the container)
+  configOverride: ""
 
 postgres:
   name: postgres
@@ -640,11 +645,30 @@ externalSecrets:
   # Azure Key Vault configuration (only used when provider is "azure-keyvault")
   azureKeyVault:
     vaultUrl: ""  # e.g., "https://my-keyvault.vault.azure.net/"
+    tenantId: ""  # Azure AD tenant ID
+  infraSecretName: ""  # Terraform-managed Key Vault secret (auto-updated)
+  appSecretName: ""    # Manually-managed Key Vault secret
   serviceAccount:
     create: false
     name: external-secrets-sa
     annotations: {}
     labels: {}
+
+# ECR credential refresh CronJob (for pulling from private ECR outside AWS)
+# Creates and refreshes an imagePullSecret every 6 hours using AWS ECR token.
+# Required when AKS or non-AWS clusters need to pull from private ECR.
+ecrCredentialRefresh:
+  enabled: false
+  registry: ""
+  # AWS region of the ECR registry
+  awsRegion: "us-east-2"
+  # Name of the Kubernetes secret containing AWS credentials (keys: aws-access-key-id, aws-secret-access-key)
+  awsSecretName: "ecr-credentials"
+  # Name of the imagePullSecret that will be created/refreshed
+  imagePullSecretName: "ecr-pull-secret"
+  serviceAccount:
+    name: "ecr-credential-refresh"
+    annotations: {}
 
 # Subagent configuration
 subagents:

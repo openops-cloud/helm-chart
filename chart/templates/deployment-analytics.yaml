@@ -77,3 +77,13 @@ spec:
           timeoutSeconds: 8
           failureThreshold: 10
         {{- include "openops.lifecyclePreStop" . | nindent 8 }}
+{{- if .Values.analytics.configOverride }}
+        volumeMounts:
+        - name: config-override
+          mountPath: /app/pythonpath/superset_config_docker.py
+          subPath: superset_config_docker.py
+      volumes:
+      - name: config-override
+        configMap:
+          name: {{ .Values.analytics.name }}-config
+{{- end }}
