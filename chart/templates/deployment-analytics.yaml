@@ -31,6 +31,9 @@ spec:
         {{- with include "openops.secretChecksum" . }}
         checksum/secret-env: {{ . }}
         {{- end }}
+        {{- if .Values.analytics.configOverride }}
+        checksum/analytics-config: {{ include (print $.Template.BasePath "/configmap-analytics.yaml") . | sha256sum }}
+        {{- end }}
         {{- with .Values.global.commonAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

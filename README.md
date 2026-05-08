@@ -322,7 +322,7 @@ When deploying on AKS or other non-AWS Kubernetes clusters that need to pull ima
 ```yaml
 global:
   imagePullSecrets:
-    - name: ecr-pull-secret
+    - ecr-pull-secret
 
 ecrCredentialRefresh:
   enabled: true
