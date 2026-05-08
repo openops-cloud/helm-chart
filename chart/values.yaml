@@ -662,7 +662,7 @@ ecrCredentialRefresh:
   registry: ""
   # AWS region of the ECR registry
   awsRegion: "us-east-2"
-  # Name of the Kubernetes secret containing AWS credentials (keys: aws-access-key-id, aws-secret-access-key)
+  # Name of the Kubernetes secret containing AWS credentials (keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
   awsSecretName: "ecr-credentials"
   # Name of the imagePullSecret that will be created/refreshed
   imagePullSecretName: "ecr-pull-secret"

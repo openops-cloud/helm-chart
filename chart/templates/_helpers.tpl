@@ -216,7 +216,8 @@ Expected dict: { "root": $, "key": "ENV", "value": "value" }
 
 {{/*
 Render environment variables from a map using openops.envVar.
-Expected dict: { "root": $, "env": dict }
+Expected dict: { "root": $, "env": dict, "skipDuplicateSecrets": bool (optional) }
+When skipDuplicateSecrets is true, keys already present in openopsEnvSecrets are skipped.
 */}}
 {{- define "openops.renderEnv" -}}
 {{- $root := .root -}}
@@ -273,7 +274,7 @@ Expected dict: { "root": $, "env": dict, "secretName": "my-secret" }
   {{- $propName := include "openops.secretPropertyName" (dict "key" $k "value" ($v | toString)) -}}
   {{- if has $propName $infraKeys -}}
     {{- $remoteSecret = $infraSecretName -}}
-  {{- else -}}
+  {{- else if $appSecretName -}}
     {{- $remoteSecret = $appSecretName -}}
   {{- end -}}
 {{- end }}
