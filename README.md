@@ -336,8 +336,8 @@ ecrCredentialRefresh:
 ```bash
 kubectl create secret generic ecr-credentials \
   -n openops \
-  --from-literal=aws-access-key-id=<YOUR_ECR_ACCESS_KEY_ID> \
-  --from-literal=aws-secret-access-key=<YOUR_ECR_SECRET_ACCESS_KEY>
+  --from-literal=AWS_ACCESS_KEY_ID=<YOUR_ECR_ACCESS_KEY_ID> \
+  --from-literal=AWS_SECRET_ACCESS_KEY=<YOUR_ECR_SECRET_ACCESS_KEY>
 ```
 
 The IAM user needs only `ecr:GetAuthorizationToken`, `ecr:BatchGetImage`, and `ecr:GetDownloadUrlForLayer` permissions.
@@ -346,6 +346,48 @@ The IAM user needs only `ecr:GetAuthorizationToken`, `ecr:BatchGetImage`, and `e
 - A Helm post-install/post-upgrade hook creates the pull secret immediately on deploy
 - A CronJob refreshes the ECR token every 6 hours (tokens expire after 12h)
 - All deployments reference the pull secret via `global.imagePullSecrets`
+
+## Analytics (Superset) configuration override
+
+The analytics component is based on Apache Superset. To override its Python configuration (e.g., for Redis SSL/auth), use `analytics.configOverride`:
+
+```yaml
+analytics:
+  env:
+    REDIS_HOST: "my-redis.example.com"
+    REDIS_PORT: "6380"
+    REDIS_PASSWORD: "my-password"
+    REDIS_SSL: "true"
+  configOverride: |
+    import os
+
+    REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+    REDIS_PORT = os.getenv("REDIS_PORT", "6379")
+    REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
+    REDIS_SSL = os.getenv("REDIS_SSL", "false").lower() == "true"
+
+    REDIS_SCHEME = "rediss" if REDIS_SSL else "redis"
+    REDIS_AUTH = f"default:{REDIS_PASSWORD}@" if REDIS_PASSWORD else ""
+    REDIS_BASE_URL = f"{REDIS_SCHEME}://{REDIS_AUTH}{REDIS_HOST}:{REDIS_PORT}"
+
+    CACHE_CONFIG = {
+        "CACHE_TYPE": "RedisCache",
+        "CACHE_DEFAULT_TIMEOUT": 300,
+        "CACHE_KEY_PREFIX": "superset_",
+        "CACHE_REDIS_URL": f"{REDIS_BASE_URL}/0",
+    }
+    DATA_CACHE_CONFIG = CACHE_CONFIG
+
+    class CeleryConfig:
+        broker_url = f"{REDIS_BASE_URL}/0"
+        result_backend = f"{REDIS_BASE_URL}/0"
+        worker_prefetch_multiplier = 1
+        task_acks_late = False
+
+    CELERY_CONFIG = CeleryConfig
+```
+
+This mounts the config as `/app/pythonpath/superset_config_docker.py` inside the container, which is imported by the base Superset config and overrides cache/Celery settings.
 
 ## Topology and rollout safeguards
 The chart provides built-in safeguards to avoid single-node concentration and ensure safe rolling updates:
@@ -538,7 +580,10 @@ externalSecrets:
   provider: "azure-keyvault"
   azureKeyVault:
     vaultUrl: "https://my-keyvault.vault.azure.net/"
+    tenantId: "<azure-ad-tenant-id>"
   secretName: "my-keyvault-secret"
+  infraSecretName: "infra-secrets"   # Optional: Terraform-managed secret
+  appSecretName: "app-secrets"       # Optional: Manually-managed secret
   serviceAccount:
     create: true
     name: external-secrets-sa
