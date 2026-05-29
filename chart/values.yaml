@@ -257,7 +257,7 @@ tables:
   name: openops-tables
   image: openops-tables
   repository: "public.ecr.aws/openops"  # Always use public ECR for tables
-  tag: "0.2.19"
+  tag: "0.2.20"
   replicas: 1
   resources:
     requests:
