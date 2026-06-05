@@ -106,8 +106,8 @@ openopsEnv:
   OPS_TELEMETRY_MODE: COLLECTOR
   OPS_TELEMETRY_COLLECTOR_URL: https://telemetry.openops.com/save
 
-  # Engine
-  OPS_ENGINE_URL: '{{ include "openops.engineServiceUrl" . }}/execute'
+  # Worker
+  OPS_WORKER_URL: '{{ include "openops.workerServiceUrl" . }}'
   OPS_EXECUTION_MODE: SANDBOX_CODE_ONLY
 
   # Queue
@@ -214,9 +214,9 @@ app:
     port: 8080
     path: /metrics
 
-engine:
-  name: openops-engine
-  image: openops-engine
+worker:
+  name: openops-worker
+  image: openops-worker
   repository: ""  # Override global image.repository (empty = use global)
   replicas: 2  # Minimum 2 for high availability
   resources:
@@ -598,7 +598,7 @@ ingress:
     - paths:
         - path: /
           pathType: Prefix
-          # serviceName must match a service defined in this chart (nginx, app, engine, tables, analytics)
+          # serviceName must match a service defined in this chart (nginx, app, worker, tables, analytics)
           serviceName: nginx
           servicePort: 80
   # TLS-related settings below apply only to nginx ingress controller

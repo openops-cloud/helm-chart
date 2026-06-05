@@ -144,8 +144,8 @@ Service URLs
 {{- printf "http://%s" .Values.app.name -}}
 {{- end }}
 
-{{- define "openops.engineServiceUrl" -}}
-{{- printf "http://%s:3005" .Values.engine.name -}}
+{{- define "openops.workerServiceUrl" -}}
+{{- printf "http://%s:3000" .Values.worker.name -}}
 {{- end }}
 
 {{- define "openops.tablesServiceUrl" -}}

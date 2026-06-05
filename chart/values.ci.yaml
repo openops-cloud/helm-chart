@@ -41,7 +41,7 @@ app:
       cpu: "500m"
       memory: "1Gi"
 
-engine:
+worker:
   replicas: 1
   podDisruptionBudget:
     enabled: false
