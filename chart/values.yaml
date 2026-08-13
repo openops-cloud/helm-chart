@@ -193,7 +193,7 @@ app:
   # Pod Disruption Budget - ENABLED BY DEFAULT
   podDisruptionBudget:
     enabled: true
-    minAvailable: 1
+    maxUnavailable: 1
   # Horizontal Pod Autoscaler
   autoscaling:
     enabled: false
@@ -229,7 +229,7 @@ worker:
   # Pod Disruption Budget - ENABLED BY DEFAULT
   podDisruptionBudget:
     enabled: true
-    minAvailable: 1
+    maxUnavailable: 1
   # Horizontal Pod Autoscaler
   autoscaling:
     enabled: false
@@ -257,7 +257,7 @@ tables:
   name: openops-tables
   image: openops-tables
   repository: "public.ecr.aws/openops"  # Always use public ECR for tables
-  tag: "0.2.20"
+  tag: "0.2.21"
   replicas: 1
   resources:
     requests:
@@ -269,7 +269,7 @@ tables:
   # Pod Disruption Budget
   podDisruptionBudget:
     enabled: true
-    minAvailable: 1
+    maxUnavailable: 1
   # Horizontal Pod Autoscaler
   autoscaling:
     enabled: false
@@ -332,7 +332,7 @@ analytics:
   # Pod Disruption Budget
   podDisruptionBudget:
     enabled: true
-    minAvailable: 1
+    maxUnavailable: 1
   # Horizontal Pod Autoscaler
   autoscaling:
     enabled: false
@@ -545,7 +545,7 @@ nginx:
   # Pod Disruption Budget - ENABLED BY DEFAULT
   podDisruptionBudget:
     enabled: true
-    minAvailable: 1
+    maxUnavailable: 1
   # Horizontal Pod Autoscaler
   autoscaling:
     enabled: false
