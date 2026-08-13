@@ -9,10 +9,10 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
-  {{- if not (kindIs "invalid" .Values.engine.podDisruptionBudget.maxUnavailable) }}
-  maxUnavailable: {{ .Values.engine.podDisruptionBudget.maxUnavailable }}
+  {{- if not (kindIs "invalid" .Values.worker.podDisruptionBudget.maxUnavailable) }}
+  maxUnavailable: {{ .Values.worker.podDisruptionBudget.maxUnavailable }}
   {{- else }}
-  minAvailable: {{ .Values.engine.podDisruptionBudget.minAvailable | default 1 }}
+  minAvailable: {{ .Values.worker.podDisruptionBudget.minAvailable | default 1 }}
   {{- end }}
   selector:
     matchLabels:
