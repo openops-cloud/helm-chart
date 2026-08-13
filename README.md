@@ -829,25 +829,51 @@ global:
     topologyKey: topology.kubernetes.io/zone
     whenUnsatisfiable: DoNotSchedule
 
-# Enable PodDisruptionBudgets
-pdb:
-  enabled: true
-  app:
+# PodDisruptionBudgets are enabled by default with maxUnavailable: 1
+app:
+  podDisruptionBudget:
     enabled: true
-    minAvailable: 2
-  engine:
+    maxUnavailable: 1
+engine:
+  podDisruptionBudget:
     enabled: true
-    minAvailable: 2
-  nginx:
+    maxUnavailable: 1
+nginx:
+  podDisruptionBudget:
     enabled: true
-    minAvailable: 1
-  analytics:
+    maxUnavailable: 1
+analytics:
+  podDisruptionBudget:
     enabled: true
-    minAvailable: 1
-  tables:
+    maxUnavailable: 1
+tables:
+  podDisruptionBudget:
     enabled: true
-    minAvailable: 1
+    maxUnavailable: 1
 ```
+
+A PodDisruptionBudget resource carries only one of the two fields. The chart renders
+`maxUnavailable` whenever that value is non-nil, and `minAvailable` otherwise;
+`maxUnavailable: 0` counts as set and is rendered as `0`.
+
+Prefer `maxUnavailable`. `minAvailable: 1` on a component running a single replica
+evaluates to `disruptionsAllowed: 0`, which makes the pod impossible to evict and blocks
+every node drain — cluster upgrades, node image upgrades and autoscaler scale-down all
+fail while it is set. `analytics` and `tables` default to one replica, and `tables` uses
+`ReadWriteOnce` storage so it cannot be scaled out of the problem.
+
+To use `minAvailable` instead, set `maxUnavailable` to `null` explicitly:
+
+```yaml
+app:
+  podDisruptionBudget:
+    maxUnavailable: null
+    minAvailable: 2
+```
+
+Note that `maxUnavailable: 1` allows only one pod down at a time. At three or more
+replicas that is stricter than `minAvailable: 1`, which permits all but one to go at
+once — safer, but drains take longer.
 
 ### Monitoring and observability
 

@@ -9,7 +9,11 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
-  minAvailable: {{ .Values.app.podDisruptionBudget.minAvailable }}
+  {{- if not (kindIs "invalid" .Values.app.podDisruptionBudget.maxUnavailable) }}
+  maxUnavailable: {{ .Values.app.podDisruptionBudget.maxUnavailable }}
+  {{- else }}
+  minAvailable: {{ .Values.app.podDisruptionBudget.minAvailable | default 1 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "openops.componentSelectorLabels" (dict "root" . "component" "app") | nindent 6 }}
