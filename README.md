@@ -852,8 +852,9 @@ tables:
     maxUnavailable: 1
 ```
 
-Each component takes either `maxUnavailable` or `minAvailable` — a PodDisruptionBudget
-may not set both, and `maxUnavailable` wins if you set both.
+A PodDisruptionBudget resource carries only one of the two fields. The chart renders
+`maxUnavailable` whenever that value is non-nil, and `minAvailable` otherwise;
+`maxUnavailable: 0` counts as set and is rendered as `0`.
 
 Prefer `maxUnavailable`. `minAvailable: 1` on a component running a single replica
 evaluates to `disruptionsAllowed: 0`, which makes the pod impossible to evict and blocks
@@ -861,7 +862,7 @@ every node drain — cluster upgrades, node image upgrades and autoscaler scale-
 fail while it is set. `analytics` and `tables` default to one replica, and `tables` uses
 `ReadWriteOnce` storage so it cannot be scaled out of the problem.
 
-To use `minAvailable` instead, unset `maxUnavailable` explicitly:
+To use `minAvailable` instead, set `maxUnavailable` to `null` explicitly:
 
 ```yaml
 app:

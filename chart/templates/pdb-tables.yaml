@@ -9,7 +9,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
-  {{- if .Values.tables.podDisruptionBudget.maxUnavailable }}
+  {{- if not (kindIs "invalid" .Values.tables.podDisruptionBudget.maxUnavailable) }}
   maxUnavailable: {{ .Values.tables.podDisruptionBudget.maxUnavailable }}
   {{- else }}
   minAvailable: {{ .Values.tables.podDisruptionBudget.minAvailable | default 1 }}
