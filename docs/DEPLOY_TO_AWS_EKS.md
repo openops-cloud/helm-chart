@@ -751,23 +751,26 @@ nginx:
       # service.beta.kubernetes.io/aws-load-balancer-internal: "true"
 
 # Pod Disruption Budgets for HA
-pdb:
-  enabled: true
-  app:
+app:
+  podDisruptionBudget:
     enabled: true
-    minAvailable: 2
-  engine:
+    maxUnavailable: 1
+engine:
+  podDisruptionBudget:
     enabled: true
-    minAvailable: 2
-  nginx:
+    maxUnavailable: 1
+nginx:
+  podDisruptionBudget:
     enabled: true
-    minAvailable: 1
-  analytics:
+    maxUnavailable: 1
+analytics:
+  podDisruptionBudget:
     enabled: true
-    minAvailable: 1
-  tables:
+    maxUnavailable: 1
+tables:
+  podDisruptionBudget:
     enabled: true
-    minAvailable: 1
+    maxUnavailable: 1
 
 # Horizontal Pod Autoscaling
 hpa:
