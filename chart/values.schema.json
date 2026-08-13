@@ -55,7 +55,7 @@
         }
       }
     },
-    "engine": {
+    "worker": {
       "type": "object",
       "required": ["name", "image", "replicas"],
       "properties": {
@@ -67,7 +67,7 @@
         },
         "repository": {
           "type": "string",
-          "description": "Override global image.repository for engine (empty = use global)"
+          "description": "Override global image.repository for worker (empty = use global)"
         },
         "replicas": {
           "type": "integer",

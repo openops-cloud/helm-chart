@@ -40,10 +40,10 @@ spec:
     - to:
         - podSelector:
             matchLabels:
-              app.kubernetes.io/component: engine
+              app.kubernetes.io/component: worker
       ports:
         - protocol: TCP
-          port: 3005
+          port: 3000
     - to:
         - podSelector:
             matchLabels:
@@ -71,17 +71,17 @@ spec:
         - protocol: TCP
           port: 443
 ---
-# Network policy for engine
+# Network policy for worker
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ .Values.engine.name }}-netpol
+  name: {{ .Values.worker.name }}-netpol
   labels:
-    {{- include "openops.componentLabels" (dict "root" . "component" "engine") | nindent 4 }}
+    {{- include "openops.componentLabels" (dict "root" . "component" "worker") | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
-      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "engine") | nindent 6 }}
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "worker") | nindent 6 }}
   policyTypes:
     - Ingress
     - Egress
@@ -92,7 +92,7 @@ spec:
               app.kubernetes.io/component: app
       ports:
         - protocol: TCP
-          port: 3005
+          port: 3000
   egress:
     - to:
         - podSelector:
@@ -306,7 +306,7 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              app.kubernetes.io/component: engine
+              app.kubernetes.io/component: worker
       ports:
         - protocol: TCP
           port: 5432
@@ -358,7 +358,7 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              app.kubernetes.io/component: engine
+              app.kubernetes.io/component: worker
       ports:
         - protocol: TCP
           port: 6379
