@@ -156,6 +156,10 @@ Service URLs
 {{- printf "http://%s:8088" .Values.analytics.name -}}
 {{- end }}
 
+{{- define "openops.mcpServiceUrl" -}}
+{{- printf "http://%s:%v" .Values.mcp.name .Values.mcp.port -}}
+{{- end }}
+
 {{/*
 Check if nginx ingress controller is being used
 */}}
@@ -411,6 +415,28 @@ Validate that required secrets are configured - ALWAYS ENFORCED
 {{- end -}}
 {{- if not .Values.openopsEnvSecrets.ANALYTICS_POWERUSER_PASSWORD -}}
 {{- fail "ERROR: ANALYTICS_POWERUSER_PASSWORD is required. Use a strong password" -}}
+{{- end -}}
+{{- end -}}
+{{- include "openops.validateMcp" . -}}
+{{- end }}
+
+{{/*
+Validate the MCP / OAuth configuration when the MCP server is enabled.
+The key must be declared even when an external secret manager supplies the value, because the
+ExternalSecret and the pods' secretKeyRefs are generated from the declared keys.
+*/}}
+{{- define "openops.validateMcp" -}}
+{{- if .Values.mcp.enabled -}}
+{{- if not (hasKey .Values.openopsEnvSecrets "OPS_OAUTH_RS_CLIENT_SECRET") -}}
+{{- fail "ERROR: mcp.enabled requires openopsEnvSecrets.OPS_OAUTH_RS_CLIENT_SECRET to be declared (openssl rand -hex 32). Declare it as \"\" when the value comes from an external secret manager." -}}
+{{- end -}}
+{{- $usingExistingSecret := and .Values.secretEnv .Values.secretEnv.existingSecret (not .Values.secretEnv.create) -}}
+{{- if and (not $usingExistingSecret) (lt (len .Values.openopsEnvSecrets.OPS_OAUTH_RS_CLIENT_SECRET) 32) -}}
+{{- fail "ERROR: OPS_OAUTH_RS_CLIENT_SECRET must be at least 32 characters when mcp.enabled is true. Generate with: openssl rand -hex 32" -}}
+{{- end -}}
+{{- $url := include "openops.publicUrl" . -}}
+{{- if and (not (hasPrefix "https://" $url)) (not (hasPrefix "http://localhost" $url)) -}}
+{{- fail (printf "ERROR: mcp.enabled requires an https global.publicUrl (got %s). The MCP server refuses a plain-http OAuth issuer except on localhost." $url) -}}
 {{- end -}}
 {{- end -}}
 {{- end }}

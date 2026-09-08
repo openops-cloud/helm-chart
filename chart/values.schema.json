@@ -75,6 +75,39 @@
         }
       }
     },
+    "mcp": {
+      "type": "object",
+      "required": ["enabled", "name", "image", "tag", "port", "replicas"],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string",
+          "description": "Override global image.repository for mcp (empty = use global)"
+        },
+        "tag": {
+          "type": "string",
+          "minLength": 1,
+          "description": "MCP image tag; versioned independently of global.version"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
     "tables": {
       "type": "object",
       "required": ["name", "image", "tag", "replicas"],

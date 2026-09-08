@@ -110,6 +110,12 @@ openopsEnv:
   OPS_WORKER_URL: '{{ include "openops.workerServiceUrl" . }}'
   OPS_EXECUTION_MODE: SANDBOX_CODE_ONLY
 
+  # OAuth for external agents (MCP). Derived from mcp.enabled and global.publicUrl so the API
+  # and the MCP pod always agree on issuer and resource. See the "mcp" section below.
+  OPS_OAUTH_ENABLED: '{{ .Values.mcp.enabled }}'
+  OPS_OAUTH_ISSUER_URL: '{{ include "openops.publicUrl" . }}/api'
+  OPS_MCP_RESOURCE_URL: '{{ include "openops.publicUrl" . }}/mcp'
+
   # Queue
   OPS_QUEUE_MODE: REDIS
   OPS_REDIS_URL: '{{ include "openops.redisUrl" . }}'
@@ -167,6 +173,10 @@ openopsEnvSecrets:
   OPS_LANGFUSE_PUBLIC_KEY: ""
   OPS_LANGFUSE_SECRET_KEY: ""
   OPS_SSO_FRONTEGG_PUBLIC_KEY: ""
+  # When mcp.enabled is true, declare OPS_OAUTH_RS_CLIENT_SECRET here (openssl rand -hex 32).
+  # It is intentionally not a default: External Secrets fails the whole sync when a requested
+  # property is missing, so adding it unconditionally would break installs that keep MCP off.
+  # OPS_OAUTH_RS_CLIENT_SECRET: ""
 
 secretEnv:
   create: true
@@ -252,6 +262,62 @@ worker:
   env:
     OPS_BASE_CODE_DIRECTORY: /tmp/codes
     OPS_SERVER_API_URL: '{{ printf "%s/api/" (include "openops.appServiceUrl" .) }}'
+
+# MCP server for external agents (Claude Code, Codex, ...). Opt-in: serves <publicUrl>/mcp
+# through nginx and authenticates agents with OAuth issued by the OpenOps API. Enabling it
+# requires an https global.publicUrl (or localhost) and OPS_OAUTH_RS_CLIENT_SECRET in
+# openopsEnvSecrets (at least 32 characters, shared with the API).
+mcp:
+  enabled: false
+  name: openops-mcp
+  image: openops-mcp
+  # Main-branch builds live in the private registry until the first public release; the
+  # public image will be openops.azurecr.io/openops-mcp:<version>. Pulling from the private
+  # registry needs pull access on the cluster (imagePullSecrets or a registry role).
+  repository: "openopsprivate.azurecr.io"
+  tag: "ad608575"  # Independently versioned (8-char commit sha or release version), not global.version
+  port: 3020
+  replicas: 2  # Stateless; any replica serves any request
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  # Pod Disruption Budget - ENABLED BY DEFAULT
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 1
+  # Horizontal Pod Autoscaler
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  # Init containers (optional)
+  initContainers: []
+  # Service Account
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  # No "metrics" map: the server exposes no /metrics endpoint. Add one (enabled/port/path)
+  # and a ServiceMonitor block once it does; the Prometheus annotations helper skips
+  # components without it.
+  # Only these variables reach the MCP pod; openopsEnv/openopsEnvSecrets are not injected.
+  # Values referencing .Values.openopsEnvSecrets.* are sourced from the shared Secret.
+  env:
+    MCP_HTTP_PORT: '{{ .Values.mcp.port }}'
+    OPENOPS_API_URL: '{{ include "openops.appServiceUrl" . }}/api'
+    OPENOPS_MCP_PROFILE: agent
+    OPENOPS_MCP_ISSUER: '{{ .Values.openopsEnv.OPS_OAUTH_ISSUER_URL }}'
+    OPENOPS_MCP_RESOURCE_URL: '{{ .Values.openopsEnv.OPS_MCP_RESOURCE_URL }}'
+    OPENOPS_MCP_CLIENT_SECRET: '{{ .Values.openopsEnvSecrets.OPS_OAUTH_RS_CLIENT_SECRET }}'
+    LOG_LEVEL: '{{ .Values.openopsEnv.OPS_LOG_LEVEL }}'
+    ENVIRONMENT: '{{ .Values.openopsEnv.OPS_ENVIRONMENT_NAME }}'
+    LOGZIO_TOKEN: '{{ .Values.openopsEnvSecrets.OPS_LOGZIO_TOKEN }}'
 
 tables:
   name: openops-tables

@@ -9,7 +9,8 @@ This repository contains the Helm chart that deploys the OpenOps application sta
 - `chart/values.ci.yaml`: Resource-constrained overlay for CI environments.
 - `chart/values.dev.yaml`: Development overlay for local development environments.
 - `chart/values.production.yaml`: Production overlay with externalized dependencies and cloud settings.
-- `chart/templates/`: Kubernetes manifests templated by Helm (43 files including deployments, statefulsets, services, configmaps, secrets, external secrets, PVCs, ingress, service accounts, PodDisruptionBudgets, HorizontalPodAutoscalers, NetworkPolicy, LimitRange, ServiceMonitor, Helm tests, and helpers).
+- `chart/values.mcp-example.yaml`: Overlay enabling the MCP server for external agents; rendered in CI.
+- `chart/templates/`: Kubernetes manifests templated by Helm (48 files including deployments, statefulsets, services, configmaps, secrets, external secrets, PVCs, ingress, service accounts, PodDisruptionBudgets, HorizontalPodAutoscalers, NetworkPolicy, LimitRange, ServiceMonitor, Helm tests, and helpers).
 - `chart/.helmignore`: Excludes development and repository files from packaged charts.
 - `LICENSE`: Apache 2.0 license for this Helm chart.
 - `docs/`: Deployment guides for AWS EKS, EKS Fargate, and other platforms.
@@ -17,7 +18,8 @@ This repository contains the Helm chart that deploys the OpenOps application sta
 ## Components
 - **nginx**: Reverse proxy and load balancer exposed via `LoadBalancer`.
 - **openops-app**: Main application server.
-- **openops-engine**: Task execution engine.
+- **openops-worker**: Workflow execution worker.
+- **openops-mcp** (opt-in): MCP server that lets external agents such as Claude Code or Codex operate OpenOps over OAuth.
 - **openops-tables**: Data tables service (Baserow).
 - **openops-analytics**: Analytics dashboard (Superset).
 - **postgres**: PostgreSQL database.
@@ -116,6 +118,10 @@ The chart includes several example overlay files to help you get started:
 - Cloud-specific storage classes (gp3, premium-rwo, managed-csi)
 - LoadBalancer annotations for AWS/GCP/Azure
 - Security hardening examples
+
+**`values.mcp-example.yaml`** - MCP server enabled
+- Shows the minimum to turn on the MCP server: `mcp.enabled`, an https `global.publicUrl`, and `OPS_OAUTH_RS_CLIENT_SECRET`
+- Rendered by the validation workflow so the opt-in path stays green
 
 ### Creating custom overlays
 
@@ -311,6 +317,36 @@ kubectl create secret tls openops-tls \
   --key=/path/to/tls.key \
   -n openops
 ```
+
+## MCP server for external agents
+
+External agents such as Claude Code or Codex connect to OpenOps through the `openops-mcp` service, which is disabled by default. When enabled it sits behind nginx at `<publicUrl>/mcp` and authenticates agents with OAuth issued by the OpenOps API. The chart derives the API-side settings (`OPS_OAUTH_ENABLED`, `OPS_OAUTH_ISSUER_URL`, `OPS_MCP_RESOURCE_URL`) from `mcp.enabled` and `global.publicUrl`, so the two sides cannot drift.
+
+Prerequisites:
+- `global.publicUrl` must be `https://...` (plain `http` is only accepted for `localhost`), so enable TLS first.
+- `OPS_OAUTH_RS_CLIENT_SECRET` must be declared under `openopsEnvSecrets` with a random value of at least 32 characters (`openssl rand -hex 32`). It is shared between the API and the MCP pod. When an external secret manager supplies the value, declare the key as `""` and add the property to the remote secret; External Secrets fails the whole sync when a requested property is missing, which is why the chart does not declare this key by default.
+- Pull access to the MCP image. Until the first public release the default `mcp.repository` is the private registry `openopsprivate.azurecr.io`; point `mcp.repository`/`mcp.tag` at an image your cluster can pull, or grant the cluster's node identity pull rights on that registry.
+
+Minimal override:
+```yaml
+global:
+  publicUrl: "https://example.openops.com"
+
+openopsEnvSecrets:
+  OPS_OAUTH_RS_CLIENT_SECRET: "<openssl rand -hex 32>"
+
+mcp:
+  enabled: true
+  tag: "<release version or commit sha>"
+```
+
+The MCP pod is stateless and receives only its own environment (`mcp.env`), never the shared `openopsEnv`/`openopsEnvSecrets` layers. It has no health endpoint, so probes use the unauthenticated OAuth metadata route `/.well-known/oauth-protected-resource/mcp`. With `networkPolicy.enabled`, only nginx may reach it and it may only reach the app, DNS, and port 443.
+
+Connect an agent:
+```bash
+claude mcp add --transport http openops https://example.openops.com/mcp
+```
+The first tool call opens a browser to approve the connection under Settings -> Connected apps.
 
 ## Dependencies
 The deployments include health checks and readiness probes so dependent services wait until their prerequisites are available.
