@@ -269,7 +269,9 @@ Expected dict: { "root": $, "env": dict, "secretName": "my-secret" }
   {{- $infraSecretName = $root.Values.externalSecrets.infraSecretName -}}
   {{- $appSecretName = $root.Values.externalSecrets.appSecretName -}}
 {{- end -}}
-{{- $infraKeys := list "OPS_POSTGRES_PASSWORD" "OPS_REDIS_URL" "OPS_REDIS_HOST" "OPS_REDIS_PASSWORD" -}}
+{{- /* Keys Terraform writes into the infra secret; everything else comes from the app secret.
+       OPS_OAUTH_RS_CLIENT_SECRET is generated per environment by infra (devops) for the MCP server. */ -}}
+{{- $infraKeys := list "OPS_POSTGRES_PASSWORD" "OPS_REDIS_URL" "OPS_REDIS_HOST" "OPS_REDIS_PASSWORD" "OPS_OAUTH_RS_CLIENT_SECRET" -}}
 {{- range $k := keys $env | sortAlpha -}}
 {{- $v := index $env $k -}}
 {{- if eq (include "openops.isSecretKey" (dict "root" $root "key" $k "value" ($v | toString))) "true" }}

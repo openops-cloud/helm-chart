@@ -324,7 +324,7 @@ External agents such as Claude Code or Codex connect to OpenOps through the `ope
 
 Prerequisites:
 - `global.publicUrl` must be `https://...` (plain `http` is only accepted for `localhost`), so enable TLS first.
-- `OPS_OAUTH_RS_CLIENT_SECRET` must be declared under `openopsEnvSecrets` with a random value of at least 32 characters (`openssl rand -hex 32`). It is shared between the API and the MCP pod. When an external secret manager supplies the value, declare the key as `""` and add the property to the remote secret; External Secrets fails the whole sync when a requested property is missing, which is why the chart does not declare this key by default.
+- `OPS_OAUTH_RS_CLIENT_SECRET` must be declared under `openopsEnvSecrets` with a random value of at least 32 characters (`openssl rand -hex 32`). It is shared between the API and the MCP pod. When an external secret manager supplies the value, declare the key as `""`; with `externalSecrets.infraSecretName` set, the chart reads it from the infra secret (the Terraform-generated one on Azure), otherwise from the single remote secret. External Secrets fails the whole sync when a requested property is missing, which is why the chart does not declare this key by default.
 - Pull access to the MCP image. Until the first public release the default `mcp.repository` is the private registry `openopsprivate.azurecr.io`; point `mcp.repository`/`mcp.tag` at an image your cluster can pull, or grant the cluster's node identity pull rights on that registry.
 
 Minimal override:
