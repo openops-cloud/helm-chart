@@ -35,7 +35,7 @@
 - **Validation helpers**: Runtime validation of required secrets (OPS_ENCRYPTION_KEY, OPS_JWT_SECRET, etc.) with helpful error messages at render time.
 
 ## Release workflow
-- **`.github/workflows/release.yml`**: Packages the Helm chart and pushes it as an OCI artifact to `openops.azurecr.io/helm/openops`.
+- **`.github/workflows/release.yml`**: Packages the Helm chart and pushes it as an OCI artifact to `openops.azurecr.io/openops`.
 - Triggered via `workflow_dispatch` with two inputs:
   - `version` (required): The release version (e.g., `0.6.15`). Sets both `Chart.yaml` version/appVersion and `global.version` (image tags).
   - `draft` (boolean, default `true`): When true, appends `-draft` to the chart version (e.g., `0.6.15-draft`). The suffix is a naming convention only - ACR does not enforce tag immutability unless it is configured on the registry, so a final version can be overwritten by a later push of the same version.
@@ -47,9 +47,9 @@
 ## Versioning strategy
 - All *release* versions are unified: chart version = appVersion = `global.version` (image tags) = OpenOps release version. The in-repo development defaults (`0.0.1-dev`) are normalized by the release workflow.
 - Exception: draft releases use `{version}-draft` for the chart version only; `appVersion` and image tags use the clean version.
-- The chart is published to `oci://openops.azurecr.io/helm/openops`. Users install with:
+- The chart is published to `oci://openops.azurecr.io/openops`. Users install with:
   ```
-  helm install openops oci://openops.azurecr.io/helm/openops --version <VERSION>
+  helm install openops oci://openops.azurecr.io/openops --version <VERSION>
   ```
 
 ## PR lint rules
