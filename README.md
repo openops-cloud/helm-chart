@@ -332,12 +332,6 @@ image:
   repository: my-registry.example.com/openops
 ```
 
-Earlier versions of this chart shipped a CronJob that minted a 12-hour ECR token into a pull
-secret every six hours. It existed because the images lived in a private ECR registry and those
-tokens expire; they no longer do, so it has been removed. On AKS, granting the cluster's kubelet
-identity `Container Registry Repository Reader` on the registry is the equivalent and needs no
-secret at all.
-
 ## Analytics (Superset) configuration override
 
 The analytics component is based on Apache Superset. To override its Python configuration (e.g., for Redis SSL/auth), use `analytics.configOverride`:
