@@ -28,7 +28,7 @@ This repository contains the Helm chart that deploys the OpenOps application sta
 ### Install from OCI registry (recommended)
 
 ```bash
-helm install openops oci://public.ecr.aws/openops/helm/openops \
+helm install openops oci://openops.azurecr.io/helm/openops \
   --version <VERSION> \
   -n openops --create-namespace \
   -f values.overrides.yaml
@@ -315,37 +315,28 @@ kubectl create secret tls openops-tls \
 ## Dependencies
 The deployments include health checks and readiness probes so dependent services wait until their prerequisites are available.
 
-## Private ECR access from non-AWS clusters
+## Pulling from a private registry
 
-When deploying on AKS or other non-AWS Kubernetes clusters that need to pull images from a private ECR registry, enable the ECR credential refresh CronJob:
+Release images need no credentials. `openops.azurecr.io` allows anonymous pull, so a default
+install authenticates to nothing.
+
+If you mirror the images into a registry of your own, create a pull secret by whatever means
+that registry expects and reference it:
 
 ```yaml
 global:
   imagePullSecrets:
-    - ecr-pull-secret
+    - my-registry-credentials
 
-ecrCredentialRefresh:
-  enabled: true
-  registry: "<registry>"
-  awsRegion: "us-east-2"
-  awsSecretName: "ecr-credentials"       # K8s secret with AWS access keys
-  imagePullSecretName: "ecr-pull-secret"  # Created/refreshed automatically
+image:
+  repository: my-registry.example.com/openops
 ```
 
-**Pre-requisite:** Create the AWS credentials secret (one-time):
-```bash
-kubectl create secret generic ecr-credentials \
-  -n openops \
-  --from-literal=AWS_ACCESS_KEY_ID=<YOUR_ECR_ACCESS_KEY_ID> \
-  --from-literal=AWS_SECRET_ACCESS_KEY=<YOUR_ECR_SECRET_ACCESS_KEY>
-```
-
-The IAM user needs only `ecr:GetAuthorizationToken`, `ecr:BatchGetImage`, and `ecr:GetDownloadUrlForLayer` permissions.
-
-**How it works:**
-- A Helm post-install/post-upgrade hook creates the pull secret immediately on deploy
-- A CronJob refreshes the ECR token every 6 hours (tokens expire after 12h)
-- All deployments reference the pull secret via `global.imagePullSecrets`
+Earlier versions of this chart shipped a CronJob that minted a 12-hour ECR token into a pull
+secret every six hours. It existed because the images lived in a private ECR registry and those
+tokens expire; they no longer do, so it has been removed. On AKS, granting the cluster's kubelet
+identity `Container Registry Repository Reader` on the registry is the equivalent and needs no
+secret at all.
 
 ## Analytics (Superset) configuration override
 
