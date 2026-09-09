@@ -73,8 +73,8 @@ jobs:
           TOKEN=$(az acr login --name "$ACR_PUBLIC_NAME" --expose-token --output tsv --query accessToken)
           helm registry login "$ACR_PUBLIC_LOGIN_SERVER" \
             --username 00000000-0000-0000-0000-000000000000 --password-stdin <<<"$TOKEN"
-          helm push "$CHART_PACKAGE" "oci://$ACR_PUBLIC_LOGIN_SERVER"
-          echo "- ✅ Pushed \`oci://$ACR_PUBLIC_LOGIN_SERVER/openops:${CHART_VERSION}\`" >> $GITHUB_STEP_SUMMARY
+          helm push "$CHART_PACKAGE" "oci://$ACR_PUBLIC_LOGIN_SERVER/helm"
+          echo "- ✅ Pushed \`oci://$ACR_PUBLIC_LOGIN_SERVER/helm/openops:${CHART_VERSION}\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
@@ -98,5 +98,5 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Install with:" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "helm install openops oci://${{ vars.ACR_PUBLIC_LOGIN_SERVER }}/openops --version $CHART_VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "helm install openops oci://${{ vars.ACR_PUBLIC_LOGIN_SERVER }}/helm/openops --version $CHART_VERSION" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
