@@ -94,6 +94,14 @@ To get started:
    
    Email:    {{ .Values.openopsEnv.OPS_OPENOPS_ADMIN_EMAIL }}
    Password: (from your secure values file)
+{{- if .Values.mcp.enabled }}
+
+4. Connect an external agent to the MCP server:
+
+   claude mcp add --transport http openops {{ include "openops.publicUrl" . }}/mcp
+
+   The first tool call opens a browser to approve the connection under Settings -> Connected apps.
+{{- end }}
 
 ================================================================================
 DOCUMENTATION & SUPPORT
