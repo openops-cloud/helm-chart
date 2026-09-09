@@ -1,6 +1,6 @@
 # OpenOps Helm Chart
 
-This repository contains the Helm chart that deploys the OpenOps application stack (nginx, app server, engine, tables, analytics, Postgres, Redis) onto a Kubernetes cluster.
+This repository contains the Helm chart that deploys the OpenOps application stack (nginx, app server, worker, tables, analytics, Postgres, Redis) onto a Kubernetes cluster.
 
 ## Repository layout
 - `chart/Chart.yaml`: Chart metadata for the `openops` release.
@@ -113,7 +113,7 @@ The chart includes several example overlay files to help you get started:
 
 **`values.production.yaml`** - Production-ready overlay
 - Demonstrates externalized PostgreSQL and Redis (AWS RDS, ElastiCache, etc.)
-- Increased replica counts for high availability (app: 3, engine: 3, nginx: 2)
+- Increased replica counts for high availability (app: 3, worker: 3, nginx: 2)
 - Production-grade resource allocations (2-4Gi memory per service)
 - Cloud-specific storage classes (gp3, premium-rwo, managed-csi)
 - LoadBalancer annotations for AWS/GCP/Azure
@@ -497,7 +497,7 @@ app:
       memory: "4Gi"
       cpu: "2000m"
 
-engine:
+worker:
   replicas: 3
 
 tables:
@@ -511,7 +511,7 @@ nginx:
 ```
 
 **Important scaling considerations:**
-- **app** and **engine** are stateless and can be scaled horizontally without restrictions.
+- **app** and **worker** are stateless and can be scaled horizontally without restrictions.
 - **tables** uses file-based storage (SQLite for media) and requires `ReadWriteOnce` PVC; limit to 2-3 replicas or migrate to object storage.
 - **analytics** can be scaled but shares session state; consider sticky sessions or external session storage for >2 replicas.
 - **postgres** and **redis** bundled deployments are single-replica; use external managed services for HA.
@@ -532,14 +532,14 @@ app:
 
 **Resource tuning guidelines:**
 - **app**: Memory-intensive for large workflows; start with 1-2Gi, scale to 4Gi+ under load.
-- **engine**: CPU-intensive for code execution; allocate 500m-1000m CPU per replica.
+- **worker**: CPU-intensive for code execution; allocate 500m-1000m CPU per replica.
 - **tables**: Initial migrations require 1-2Gi memory; steady-state can run on 512Mi-1Gi.
 - **analytics**: Dashboard rendering is memory-heavy; allocate 2Gi+ for production.
 - **postgres**: Size based on dataset; 512Mi-1Gi for dev, 2Gi+ for production.
 - **redis**: Typically light; 256Mi-512Mi sufficient for most workloads.
 
 ### Autoscaling
-The chart includes optional HorizontalPodAutoscaler (HPA) resources for app, engine, analytics, and nginx. Enable them in your values:
+The chart includes optional HorizontalPodAutoscaler (HPA) resources for app, worker, analytics, and nginx. Enable them in your values:
 
 ```yaml
 hpa:
@@ -550,7 +550,7 @@ hpa:
     maxReplicas: 10
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 80
-  engine:
+  worker:
     enabled: true
     minReplicas: 2
     maxReplicas: 8
@@ -700,7 +700,7 @@ networkPolicy:
 
 The default policy enforces:
 - Nginx accepts traffic from LoadBalancer/Ingress and routes to app/analytics/tables
-- App, engine, and analytics can access Postgres and Redis
+- App, worker, and analytics can access Postgres and Redis
 - All components can query DNS and access external HTTPS endpoints
 - Postgres and Redis only accept connections from authorized components
 - All other traffic is denied by default (zero-trust networking)
@@ -774,10 +774,10 @@ serviceAccount:
     create: true
     annotations:
       eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT:role/openops-app"
-  engine:
+  worker:
     create: true
     annotations:
-      eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT:role/openops-engine"
+      eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT:role/openops-worker"
   # For GCP Workload Identity
   analytics:
     create: true
@@ -843,7 +843,7 @@ app:
       memory: "2Gi"
       cpu: "1000m"
 
-engine:
+worker:
   replicas: 3
 
 tables:
@@ -870,7 +870,7 @@ app:
   podDisruptionBudget:
     enabled: true
     maxUnavailable: 1
-engine:
+worker:
   podDisruptionBudget:
     enabled: true
     maxUnavailable: 1
@@ -928,7 +928,7 @@ serviceMonitor:
 
 The ServiceMonitor automatically discovers and scrapes metrics from:
 - `openops-app` on `/metrics`
-- `openops-engine` on `/metrics`
+- `openops-worker` on `/metrics`
 - `openops-analytics` on `/metrics`
 - `postgres` on `:9187/metrics` (if postgres-exporter sidecar is enabled)
 - `redis` on `:9121/metrics` (if redis-exporter sidecar is enabled)
