@@ -20,6 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+    # The release identity's federated credentials are scoped to this environment rather than to
+    # a branch, so a release runs from any branch - and the environment is where an approval gate
+    # for publishing to the public registry belongs. Without it the OIDC subject does not match.
+    environment: release
     env:
       CHART_VERSION: ${{ inputs.draft && format('{0}-draft', inputs.version) || inputs.version }}
       APP_VERSION: ${{ inputs.version }}
@@ -54,20 +59,26 @@ jobs:
           chart_package=$(printf '%s\n' "$pkg_output" | awk '/Successfully packaged chart and saved it to:/ {print $NF}')
           echo "CHART_PACKAGE=$chart_package" >> "$GITHUB_ENV"
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Azure login
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
         with:
-          aws-access-key-id: ${{ secrets.ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.ECR_PUBLIC_REGION }}
+          client-id: ${{ secrets.AZURE_ACR_RELEASE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Push chart to public ECR
+      - name: Push chart to the public ACR
+        env:
+          ACR_PUBLIC_NAME: ${{ vars.ACR_PUBLIC_NAME }}
+          ACR_PUBLIC_LOGIN_SERVER: ${{ vars.ACR_PUBLIC_LOGIN_SERVER }}
         run: |
           set -euo pipefail
-          aws ecr-public get-login-password --region ${{ vars.ECR_PUBLIC_REGION }} \
-            | helm registry login --username AWS --password-stdin public.ecr.aws
-          helm push "$CHART_PACKAGE" oci://public.ecr.aws/openops/helm
-          echo "- ✅ Pushed \`oci://public.ecr.aws/openops/helm/openops:${CHART_VERSION}\`" >> $GITHUB_STEP_SUMMARY
+          # --expose-token rather than plain `az acr login`: that writes Docker's credential
+          # store, which helm does not read. helm wants its own registry login.
+          TOKEN=$(az acr login --name "$ACR_PUBLIC_NAME" --expose-token --output tsv --query accessToken)
+          helm registry login "$ACR_PUBLIC_LOGIN_SERVER" \
+            --username 00000000-0000-0000-0000-000000000000 --password-stdin <<<"$TOKEN"
+          helm push "$CHART_PACKAGE" "oci://$ACR_PUBLIC_LOGIN_SERVER/helm"
+          echo "- ✅ Pushed \`oci://$ACR_PUBLIC_LOGIN_SERVER/helm/openops:${CHART_VERSION}\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
@@ -91,5 +102,5 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Install with:" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "helm install openops oci://public.ecr.aws/openops/helm/openops --version $CHART_VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "helm install openops oci://${{ vars.ACR_PUBLIC_LOGIN_SERVER }}/helm/openops --version $CHART_VERSION" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY

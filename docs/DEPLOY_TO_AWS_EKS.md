@@ -617,7 +617,7 @@ global:
     enabled: true
 
 image:
-  repository: public.ecr.aws/openops
+  repository: openops.azurecr.io
   pullPolicy: IfNotPresent
 
 openopsEnv:

@@ -81,7 +81,7 @@ global:
   priorityClassName: ""
 
 image:
-  repository: public.ecr.aws/openops
+  repository: openops.azurecr.io
   pullPolicy: IfNotPresent
 
 openopsEnv:
@@ -149,7 +149,7 @@ openopsEnv:
   OPS_SUBAGENT_S3_BUCKET: ""
   OPS_SUBAGENT_S3_REGION: ""
   OPS_SUBAGENT_S3_ENDPOINT: ""
-  OPS_SUBAGENT_RUNNER_IMAGE: "535002847982.dkr.ecr.us-east-2.amazonaws.com/openops/subagent-runner:0fdbc6b1"
+  OPS_SUBAGENT_RUNNER_IMAGE: ""
 
 # Secret environment variables
 # Any var in this section is treated as a secret (stored in K8s Secret, referenced via secretKeyRef).
@@ -256,8 +256,8 @@ worker:
 tables:
   name: openops-tables
   image: openops-tables
-  repository: "public.ecr.aws/openops"  # Always use public ECR for tables
-  tag: "0.2.21"
+  repository: "openops.azurecr.io"  # Always the public registry for tables
+  tag: "0.2.22"
   replicas: 1
   resources:
     requests:
@@ -319,8 +319,8 @@ tables:
 analytics:
   name: openops-analytics
   image: openops-analytics
-  repository: "public.ecr.aws/openops"  # Always use public ECR for analytics
-  tag: "0.14.7"
+  repository: "openops.azurecr.io"  # Always the public registry for analytics
+  tag: "0.14.8"
   replicas: 1
   resources:
     requests:
@@ -654,23 +654,6 @@ externalSecrets:
     annotations: {}
     labels: {}
 
-# ECR credential refresh CronJob (for pulling from private ECR outside AWS)
-# Creates and refreshes an imagePullSecret every 6 hours using AWS ECR token.
-# Required when AKS or non-AWS clusters need to pull from private ECR.
-ecrCredentialRefresh:
-  enabled: false
-  registry: ""
-  # AWS region of the ECR registry
-  awsRegion: "us-east-2"
-  # Name of the Kubernetes secret containing AWS credentials (keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
-  awsSecretName: "ecr-credentials"
-  # Name of the imagePullSecret that will be created/refreshed
-  imagePullSecretName: "ecr-pull-secret"
-  serviceAccount:
-    name: "ecr-credential-refresh"
-    annotations: {}
-
-# Subagent configuration
 subagents:
   # Namespace where subagent pods run (defaults to same namespace as app)
   namespace: ""
