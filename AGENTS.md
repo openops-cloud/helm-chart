@@ -38,7 +38,7 @@
 - **`.github/workflows/release.yml`**: Packages the Helm chart and pushes it as an OCI artifact to `openops.azurecr.io/helm/openops`.
 - Triggered via `workflow_dispatch` with two inputs:
   - `version` (required): The release version (e.g., `0.6.15`). Sets both `Chart.yaml` version/appVersion and `global.version` (image tags).
-  - `draft` (boolean, default `true`): When true, appends `-draft` to the chart version (e.g., `0.6.15-draft`). Draft versions are overwritable on ECR; final versions are immutable.
+  - `draft` (boolean, default `true`): When true, appends `-draft` to the chart version (e.g., `0.6.15-draft`). The suffix is a naming convention only - ACR does not enforce tag immutability unless it is configured on the registry, so a final version can be overwritten by a later push of the same version.
 - Also triggered cross-repo by `openops-cloud/openops` release workflow.
 - Creates a GitHub release (draft or published) with the packaged `.tgz` as an asset.
 - **Do not bump versions in `Chart.yaml` or `values.yaml` manually**—the release workflow sets them at build time. The repo defaults are `version: 0.0.1-dev` and `appVersion: 0.0.1-dev`.
