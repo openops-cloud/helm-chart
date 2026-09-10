@@ -3,7 +3,7 @@
 # Includes test secrets - NOT FOR PRODUCTION
 
 global:
-  # Use latest published images for CI (repo default 0.0.1-dev does not exist in ECR)
+  # Use latest published images for CI (repo default 0.0.1-dev is never published)
   version: "latest"
 
   # Allow single replica for CI
