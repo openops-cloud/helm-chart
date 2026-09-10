@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.engine.name }}
+  name: {{ .Values.worker.name }}
   labels:
-    {{- include "openops.componentLabels" (dict "root" . "component" "engine") | nindent 4 }}
+    {{- include "openops.componentLabels" (dict "root" . "component" "worker") | nindent 4 }}
     {{- with .Values.global.commonLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -12,22 +12,22 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if not .Values.engine.autoscaling.enabled }}
-  replicas: {{ .Values.engine.replicas }}
+  {{- if not .Values.worker.autoscaling.enabled }}
+  replicas: {{ .Values.worker.replicas }}
   {{- end }}
   {{- include "openops.deploymentStrategy" . | nindent 2 }}
   selector:
     matchLabels:
-      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "engine") | nindent 6 }}
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "worker") | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "openops.componentSelectorLabels" (dict "root" . "component" "engine") | nindent 8 }}
+        {{- include "openops.componentSelectorLabels" (dict "root" . "component" "worker") | nindent 8 }}
         {{- with .Values.global.commonLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
       annotations:
-        {{- include "openops.prometheusAnnotations" (dict "root" . "component" "engine") | nindent 8 }}
+        {{- include "openops.prometheusAnnotations" (dict "root" . "component" "worker") | nindent 8 }}
         {{- with include "openops.secretChecksum" . }}
         checksum/secret-env: {{ . }}
         {{- end }}
@@ -35,34 +35,33 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      serviceAccountName: {{ include "openops.serviceAccountName" (dict "root" . "component" "engine") }}
+      serviceAccountName: {{ include "openops.serviceAccountName" (dict "root" . "component" "worker") }}
       {{- include "openops.imagePullSecrets" . | nindent 6 }}
-      {{- include "openops.podSecurityContext" (dict "root" . "component" "engine") | nindent 6 }}
+      {{- include "openops.podSecurityContext" (dict "root" . "component" "worker") | nindent 6 }}
       {{- include "openops.priorityClassName" . | nindent 6 }}
       {{- include "openops.terminationGracePeriodSeconds" . | nindent 6 }}
-      {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "engine") | nindent 6 }}
-      {{- include "openops.affinity" (dict "root" . "component" "engine") | nindent 6 }}
+      {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "worker") | nindent 6 }}
+      {{- include "openops.affinity" (dict "root" . "component" "worker") | nindent 6 }}
       {{- include "openops.nodeSelector" . | nindent 6 }}
       {{- include "openops.tolerations" . | nindent 6 }}
-      {{- include "openops.initContainers" (dict "root" . "component" "engine") | nindent 6 }}
+      {{- include "openops.initContainers" (dict "root" . "component" "worker") | nindent 6 }}
       containers:
-        - name: {{ .Values.engine.name }}
-          image: "{{ include "openops.imageRepository" (dict "root" . "component" "engine") }}/{{ .Values.engine.image }}:{{ .Values.global.version }}"
+        - name: {{ .Values.worker.name }}
+          image: "{{ include "openops.imageRepository" (dict "root" . "component" "worker") }}/{{ .Values.worker.image }}:{{ .Values.global.version }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- include "openops.containerSecurityContext" (dict "root" .) | nindent 10 }}
-          command: [ "/bin/sh", "-c", "cp -r /var/tmp-base/. /tmp/ && node main.js" ]
           env:
-            - name: NODE_OPTIONS
-              value: "--no-node-snapshot"
             - name: OPS_COMPONENT
-              value: engine
+              value: worker
+            - name: OPS_CONTAINER_TYPE
+              value: WORKER
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnv "skipDuplicateSecrets" true) | nindent 12 }}
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnvSecrets) | nindent 12 }}
-{{ include "openops.renderEnv" (dict "root" . "env" .Values.engine.env) | nindent 12 }}
+{{ include "openops.renderEnv" (dict "root" . "env" .Values.worker.env) | nindent 12 }}
           ports:
-            - containerPort: 3005
+            - containerPort: 3000
               name: http
-{{- with .Values.engine.resources }}
+{{- with .Values.worker.resources }}
           resources:
 {{ toYaml . | nindent 12 }}
 {{- end }}

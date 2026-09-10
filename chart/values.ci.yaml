@@ -3,7 +3,7 @@
 # Includes test secrets - NOT FOR PRODUCTION
 
 global:
-  # Use latest published images for CI (repo default 0.0.1-dev does not exist in ECR)
+  # Use latest published images for CI (repo default 0.0.1-dev is never published)
   version: "latest"
 
   # Allow single replica for CI
@@ -41,7 +41,7 @@ app:
       cpu: "500m"
       memory: "1Gi"
 
-engine:
+worker:
   replicas: 1
   podDisruptionBudget:
     enabled: false
@@ -52,6 +52,21 @@ engine:
     limits:
       cpu: "300m"
       memory: "768Mi"
+
+# MCP stays disabled in CI: the default image is in a private registry the kind cluster
+# cannot pull from. Rendering with MCP enabled is covered by values.mcp-example.yaml.
+mcp:
+  enabled: false
+  replicas: 1
+  podDisruptionBudget:
+    enabled: false
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
 
 analytics:
   replicas: 1

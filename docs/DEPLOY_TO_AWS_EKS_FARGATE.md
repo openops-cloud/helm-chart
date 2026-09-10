@@ -677,7 +677,7 @@ global:
     whenUnsatisfiable: ScheduleAnyway
 
 image:
-  repository: public.ecr.aws/openops
+  repository: openops.azurecr.io
   pullPolicy: IfNotPresent
 
 # Environment configuration

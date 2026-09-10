@@ -74,6 +74,8 @@ spec:
               value: "--no-node-snapshot"
             - name: OPS_COMPONENT
               value: app
+            - name: OPS_CONTAINER_TYPE
+              value: APP
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnv "skipDuplicateSecrets" true) | nindent 12 }}
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnvSecrets) | nindent 12 }}
           ports:
