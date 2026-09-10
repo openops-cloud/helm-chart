@@ -30,10 +30,10 @@ jobs:
       APP_VERSION: ${{ inputs.version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Set up Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v5.0.1
         with:
           version: v3.14.4
 
@@ -81,7 +81,7 @@ jobs:
           echo "- ✅ Pushed \`oci://$ACR_PUBLIC_LOGIN_SERVER/helm/openops:${CHART_VERSION}\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3.0.3
         with:
           target_commitish: ${{ github.sha }}
           tag_name: ${{ env.CHART_VERSION }}
