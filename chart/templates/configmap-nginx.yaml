@@ -90,9 +90,27 @@ data:
         }
 
         # OAuth protected-resource metadata (RFC 9728) served by the MCP server at the origin root.
-        # The authorization-server metadata lives under /api and reaches the app via "location /".
         location /.well-known/oauth-protected-resource {
             proxy_pass {{ include "openops.mcpServiceUrl" . }};
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # OAuth authorization-server discovery for the API issuer <publicUrl>/api. Without these
+        # the catch-all serves the frontend's index.html. The API registers both the bare path and
+        # the "/api"-suffixed variant, and a prefix proxy_pass keeps the suffix, so both resolve.
+        location /.well-known/oauth-authorization-server {
+            proxy_pass {{ include "openops.appServiceUrl" . }}/api/.well-known/oauth-authorization-server;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /.well-known/openid-configuration {
+            proxy_pass {{ include "openops.appServiceUrl" . }}/api/.well-known/openid-configuration;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
