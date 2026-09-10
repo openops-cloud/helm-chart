@@ -7,7 +7,8 @@
 - `/chart/values.ci.yaml`: Resource-constrained overlay for CI environments.
 - `/chart/values.dev.yaml`: Development overlay for local development environments.
 - `/chart/values.production.yaml`: Production overlay with externalized dependencies and cloud settings.
-- `/chart/templates/`: Kubernetes manifests rendered by Helm (43 files). Includes deployments/statefulsets, services, configmaps (`configmap-*.yaml`), secrets (`secret-env.yaml`, `external-secret.yaml`), service accounts, PodDisruptionBudgets, HorizontalPodAutoscalers, NetworkPolicy, LimitRange, ServiceMonitor for Prometheus, and Helm tests. Shared template helpers live in `_helpers.tpl` (561 lines with 49+ helper functions). Postgres and Redis use StatefulSets with volumeClaimTemplates for stable storage and safe rollouts.
+- `/chart/values.mcp-example.yaml`: Overlay enabling the opt-in MCP server for external agents; rendered by `helm-validate.yaml` so the enabled path stays valid.
+- `/chart/templates/`: Kubernetes manifests rendered by Helm (48 files). Includes deployments/statefulsets, services, configmaps (`configmap-*.yaml`), secrets (`secret-env.yaml`, `external-secret.yaml`), service accounts, PodDisruptionBudgets, HorizontalPodAutoscalers, NetworkPolicy, LimitRange, ServiceMonitor for Prometheus, and Helm tests. Shared template helpers live in `_helpers.tpl` (561 lines with 49+ helper functions). Postgres and Redis use StatefulSets with volumeClaimTemplates for stable storage and safe rollouts.
 - `/chart/templates/NOTES.txt`: Helm installation notes displayed after deployment with important warnings and next steps.
 - `/chart/.helmignore`: Excludes development and repository files from packaged charts to reduce size and prevent leaking unnecessary files.
 - `/LICENSE`: Apache 2.0 license for this Helm chart repository.
@@ -24,14 +25,15 @@
 
 ## Production features
 - **Security-first design**: Security contexts enabled by default (runAsNonRoot, drop ALL capabilities, seccomp RuntimeDefault profile).
-- **Service accounts**: Dedicated service accounts for each component (app, engine, tables, analytics, nginx, postgres, redis) with configurable annotations for AWS IAM roles (IRSA), GCP Workload Identity, or Azure Managed Identity.
+- **Service accounts**: Dedicated service accounts for each component (app, worker, mcp, tables, analytics, nginx, postgres, redis) with configurable annotations for AWS IAM roles (IRSA), GCP Workload Identity, or Azure Managed Identity.
 - **External Secrets Operator**: Built-in support for AWS Secrets Manager, HashiCorp Vault, GCP Secret Manager, and Azure Key Vault integration.
-- **PodDisruptionBudgets (PDBs)**: Configured for `app`, `engine`, `nginx`, `analytics` and `tables` — note that `tables` is stateful (PVC, ReadWriteOnce), while the Postgres and Redis StatefulSets have no PDB. All default to `maxUnavailable: 1` so voluntary disruptions (node drains, upgrades) can always proceed. Each component also accepts `minAvailable` when `maxUnavailable` is unset, but avoid it where a component runs a single replica: `minAvailable: 1` then evaluates to `disruptionsAllowed: 0` and blocks every drain. `analytics` and `tables` default to one replica.
-- **HorizontalPodAutoscalers (HPAs)**: Optional autoscaling for app, engine, analytics, and nginx based on CPU/memory metrics.
+- **PodDisruptionBudgets (PDBs)**: Configured for `app`, `worker`, `mcp`, `nginx`, `analytics` and `tables` — note that `tables` is stateful (PVC, ReadWriteOnce), while the Postgres and Redis StatefulSets have no PDB. All default to `maxUnavailable: 1` so voluntary disruptions (node drains, upgrades) can always proceed. Each component also accepts `minAvailable` when `maxUnavailable` is unset, but avoid it where a component runs a single replica: `minAvailable: 1` then evaluates to `disruptionsAllowed: 0` and blocks every drain. `analytics` and `tables` default to one replica.
+- **HorizontalPodAutoscalers (HPAs)**: Optional autoscaling for app, worker, mcp, analytics, and nginx based on CPU/memory metrics.
 - **NetworkPolicy**: Optional network segmentation to restrict pod-to-pod communication and enforce least-privilege networking with explicit allow rules.
 - **LimitRange**: Optional namespace-level resource defaults and constraints to prevent resource exhaustion.
 - **ServiceMonitor**: Prometheus Operator integration for scraping application metrics from `/metrics` endpoints.
 - **Helm tests**: Post-installation connectivity tests to validate deployment health.
+- **MCP server (opt-in)**: `mcp.enabled` deploys `openops-mcp` behind nginx at `/mcp` and derives the API's OAuth env from `global.publicUrl`. The MCP pod renders only `mcp.env`. `OPS_OAUTH_RS_CLIENT_SECRET` is deliberately not a default `openopsEnvSecrets` key: External Secrets fails the whole sync on a missing property, so the key, `mcp.env` secret collection, nginx routes and NetworkPolicy are all gated on `mcp.enabled`, and `openops.validateMcp` fails the render if the key is undeclared, too short, or `global.publicUrl` is not https.
 - **Validation helpers**: Runtime validation of required secrets (OPS_ENCRYPTION_KEY, OPS_JWT_SECRET, etc.) with helpful error messages at render time.
 
 ## Release workflow

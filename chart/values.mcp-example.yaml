@@ -1,0 +1,28 @@
+# Example overlay enabling the MCP server for external agents.
+# Used by CI to validate rendering with MCP on; copy the relevant keys into your own overrides.
+# Make sure to regenerate passwords and secrets.
+
+global:
+  publicUrl: "https://openops.example.com"  # must be https (or http://localhost)
+
+openopsEnv:
+  OPS_OPENOPS_ADMIN_EMAIL: openops@example.com
+
+openopsEnvSecrets:
+  OPS_OPENOPS_ADMIN_PASSWORD: 9wqhK7jehmxAQlre
+  OPS_ENCRYPTION_KEY: 7de996f020438444dc2c79e9b843805d
+  OPS_JWT_SECRET: M72yCOp9riLjIDws
+  OPS_POSTGRES_PASSWORD: WZKUM0tSvFC6VWai
+  OPS_ANALYTICS_ADMIN_PASSWORD: 7YO7YEVRaECPQimI
+  ANALYTICS_POWERUSER_PASSWORD: v5vIvwhdBDWwx4el
+  # Shared between the API (resource-server credentials) and the MCP pod. openssl rand -hex 32
+  OPS_OAUTH_RS_CLIENT_SECRET: 4c1f0f6a2c3b4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6
+
+mcp:
+  enabled: true
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  tlsConfig:
+    enabled: true

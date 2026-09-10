@@ -1,0 +1,35 @@
+{{- if and .Values.mcp.enabled .Values.mcp.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.mcp.name }}-hpa
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "mcp") | nindent 4 }}
+    {{- with .Values.global.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Values.mcp.name }}
+  minReplicas: {{ .Values.mcp.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.mcp.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.mcp.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.mcp.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.mcp.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.mcp.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

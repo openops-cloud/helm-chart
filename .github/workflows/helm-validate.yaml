@@ -33,3 +33,6 @@ jobs:
 
       - name: Template with example overrides
         run: helm template openops chart -f chart/values.overrides-example.yaml
+
+      - name: Template with MCP enabled
+        run: helm template openops chart -f chart/values.mcp-example.yaml

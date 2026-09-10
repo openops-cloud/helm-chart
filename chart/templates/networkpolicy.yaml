@@ -273,6 +273,15 @@ spec:
       ports:
         - protocol: TCP
           port: 8088
+    {{- if .Values.mcp.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: mcp
+      ports:
+        - protocol: TCP
+          port: {{ .Values.mcp.port }}
+    {{- end }}
     - to:
         - namespaceSelector: {}
       ports:
@@ -280,6 +289,52 @@ spec:
           port: 53
         - protocol: UDP
           port: 53
+{{- if .Values.mcp.enabled }}
+---
+# Network policy for mcp: reachable only from nginx; talks to the app (API + OAuth token
+# exchange), DNS, and 443 for optional log shipping.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.mcp.name }}-netpol
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "mcp") | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "mcp") | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: nginx
+      ports:
+        - protocol: TCP
+          port: {{ .Values.mcp.port }}
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: app
+      ports:
+        - protocol: TCP
+          port: 80
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+{{- end }}
 ---
 # Network policy for postgres
 apiVersion: networking.k8s.io/v1

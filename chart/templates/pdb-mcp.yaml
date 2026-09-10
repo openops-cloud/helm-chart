@@ -1,0 +1,20 @@
+{{- if and .Values.mcp.enabled .Values.mcp.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.mcp.name }}-pdb
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "mcp") | nindent 4 }}
+    {{- with .Values.global.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if not (kindIs "invalid" .Values.mcp.podDisruptionBudget.maxUnavailable) }}
+  maxUnavailable: {{ .Values.mcp.podDisruptionBudget.maxUnavailable }}
+  {{- else }}
+  minAvailable: {{ .Values.mcp.podDisruptionBudget.minAvailable | default 1 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "mcp") | nindent 6 }}
+{{- end }}
