@@ -275,7 +275,7 @@ mcp:
   # public image will be openops.azurecr.io/openops-mcp:<version>. Pulling from the private
   # registry needs pull access on the cluster (imagePullSecrets or a registry role).
   repository: "openopsprivate.azurecr.io"
-  tag: "ad608575"  # Independently versioned (8-char commit sha or release version), not global.version
+  tag: "8e7c930f"  # Independently versioned (8-char commit sha or release version), not global.version
   port: 3020
   replicas: 2  # Stateless; any replica serves any request
   resources:
