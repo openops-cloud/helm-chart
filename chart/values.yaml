@@ -255,9 +255,9 @@ worker:
     name: ""
     annotations: {}
   # Exchange a projected service account token for AWS credentials, the way IRSA
-  # does on EKS. When enabled, also set these two in openopsEnv:
-  #   OPS_AWS_WEB_IDENTITY_TOKEN_FILE  mountPath + "/token"
-  #   OPS_AWS_FEDERATION_ROLE_ARN      the IAM role the cluster federates into
+  # does on EKS. Enabling this projects the token and sets
+  # OPS_AWS_WEB_IDENTITY_TOKEN_FILE to match; you supply the role it federates
+  # into as OPS_AWS_FEDERATION_ROLE_ARN in openopsEnv.
   # Leave disabled on EKS: IRSA injects its own token and the AWS SDK finds it.
   awsWebIdentity:
     enabled: false
