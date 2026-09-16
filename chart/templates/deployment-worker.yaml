@@ -71,8 +71,25 @@ spec:
             mountPath: /tmp/.npm
           - name: tmp-codes
             mountPath: /tmp/codes
+          {{- if .Values.worker.awsWebIdentity.enabled }}
+          - name: aws-web-identity-token
+            mountPath: {{ .Values.worker.awsWebIdentity.mountPath }}
+            readOnly: true
+          {{- end }}
       volumes:
       - name: npm-cache
         emptyDir: {}
       - name: tmp-codes
         emptyDir: {}
+      {{- if .Values.worker.awsWebIdentity.enabled }}
+      # Kubernetes signs this token and AWS verifies it against the cluster's
+      # OIDC issuer, returning credentials for AWS_ROLE_ARN. The same mechanism
+      # IRSA uses on EKS, where the token is injected for you instead.
+      - name: aws-web-identity-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              path: token
+              audience: {{ .Values.worker.awsWebIdentity.audience | quote }}
+              expirationSeconds: {{ .Values.worker.awsWebIdentity.expirationSeconds }}
+      {{- end }}
