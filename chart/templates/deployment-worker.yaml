@@ -82,9 +82,6 @@ spec:
       - name: tmp-codes
         emptyDir: {}
       {{- if .Values.worker.awsWebIdentity.enabled }}
-      # Kubernetes signs this token and AWS verifies it against the cluster's
-      # OIDC issuer, returning credentials for AWS_ROLE_ARN. The same mechanism
-      # IRSA uses on EKS, where the token is injected for you instead.
       - name: aws-web-identity-token
         projected:
           sources:
