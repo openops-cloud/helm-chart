@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.worker.name }}
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "worker") | nindent 4 }}
+    {{- with .Values.global.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.global.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.worker.autoscaling.enabled }}
+  replicas: {{ .Values.worker.replicas }}
+  {{- end }}
+  {{- include "openops.deploymentStrategy" . | nindent 2 }}
+  selector:
+    matchLabels:
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "worker") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "openops.componentSelectorLabels" (dict "root" . "component" "worker") | nindent 8 }}
+        {{- with .Values.global.commonLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- include "openops.prometheusAnnotations" (dict "root" . "component" "worker") | nindent 8 }}
+        {{- with include "openops.secretChecksum" . }}
+        checksum/secret-env: {{ . }}
+        {{- end }}
+        {{- with .Values.global.commonAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "openops.serviceAccountName" (dict "root" . "component" "worker") }}
+      {{- include "openops.imagePullSecrets" . | nindent 6 }}
+      {{- include "openops.podSecurityContext" (dict "root" . "component" "worker") | nindent 6 }}
+      {{- include "openops.priorityClassName" . | nindent 6 }}
+      {{- include "openops.terminationGracePeriodSeconds" . | nindent 6 }}
+      {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "worker") | nindent 6 }}
+      {{- include "openops.affinity" (dict "root" . "component" "worker") | nindent 6 }}
+      {{- include "openops.nodeSelector" . | nindent 6 }}
+      {{- include "openops.tolerations" . | nindent 6 }}
+      {{- include "openops.initContainers" (dict "root" . "component" "worker") | nindent 6 }}
+      containers:
+        - name: {{ .Values.worker.name }}
+          image: "{{ include "openops.imageRepository" (dict "root" . "component" "worker") }}/{{ .Values.worker.image }}:{{ .Values.global.version }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- include "openops.containerSecurityContext" (dict "root" .) | nindent 10 }}
+          env:
+            - name: OPS_COMPONENT
+              value: worker
+            - name: OPS_CONTAINER_TYPE
+              value: WORKER
+            {{- if .Values.worker.awsWebIdentity.enabled }}
+            - name: OPS_AWS_WEB_IDENTITY_TOKEN_FILE
+              value: {{ printf "%s/token" (trimSuffix "/" .Values.worker.awsWebIdentity.mountPath) | quote }}
+            {{- end }}
+{{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnv "skipDuplicateSecrets" true) | nindent 12 }}
+{{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnvSecrets) | nindent 12 }}
+{{ include "openops.renderEnv" (dict "root" . "env" .Values.worker.env) | nindent 12 }}
+          ports:
+            - containerPort: 3000
+              name: http
+{{- with .Values.worker.resources }}
+          resources:
+{{ toYaml . | nindent 12 }}
+{{- end }}
+          {{- include "openops.lifecyclePreStop" . | nindent 10 }}
+          volumeMounts:
+          - name: npm-cache
+            mountPath: /tmp/.npm
+          - name: tmp-codes
+            mountPath: /tmp/codes
+          {{- if .Values.worker.awsWebIdentity.enabled }}
+          - name: aws-web-identity-token
+            mountPath: {{ .Values.worker.awsWebIdentity.mountPath }}
+            readOnly: true
+          {{- end }}
+      volumes:
+      - name: npm-cache
+        emptyDir: {}
+      - name: tmp-codes
+        emptyDir: {}
+      {{- if .Values.worker.awsWebIdentity.enabled }}
+      - name: aws-web-identity-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              path: token
+              audience: {{ .Values.worker.awsWebIdentity.audience | quote }}
+              expirationSeconds: {{ .Values.worker.awsWebIdentity.expirationSeconds }}
+      {{- end }}
