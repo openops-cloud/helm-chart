@@ -55,6 +55,10 @@ spec:
               value: worker
             - name: OPS_CONTAINER_TYPE
               value: WORKER
+            {{- if .Values.worker.awsWebIdentity.enabled }}
+            - name: OPS_AWS_WEB_IDENTITY_TOKEN_FILE
+              value: {{ printf "%s/token" (trimSuffix "/" .Values.worker.awsWebIdentity.mountPath) | quote }}
+            {{- end }}
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnv "skipDuplicateSecrets" true) | nindent 12 }}
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.openopsEnvSecrets) | nindent 12 }}
 {{ include "openops.renderEnv" (dict "root" . "env" .Values.worker.env) | nindent 12 }}
@@ -71,8 +75,22 @@ spec:
             mountPath: /tmp/.npm
           - name: tmp-codes
             mountPath: /tmp/codes
+          {{- if .Values.worker.awsWebIdentity.enabled }}
+          - name: aws-web-identity-token
+            mountPath: {{ .Values.worker.awsWebIdentity.mountPath }}
+            readOnly: true
+          {{- end }}
       volumes:
       - name: npm-cache
         emptyDir: {}
       - name: tmp-codes
         emptyDir: {}
+      {{- if .Values.worker.awsWebIdentity.enabled }}
+      - name: aws-web-identity-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              path: token
+              audience: {{ .Values.worker.awsWebIdentity.audience | quote }}
+              expirationSeconds: {{ .Values.worker.awsWebIdentity.expirationSeconds }}
+      {{- end }}

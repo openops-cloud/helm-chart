@@ -254,6 +254,16 @@ worker:
     create: true
     name: ""
     annotations: {}
+  # Exchange a projected service account token for AWS credentials, the way IRSA
+  # does on EKS. Enabling this projects the token and sets
+  # OPS_AWS_WEB_IDENTITY_TOKEN_FILE to match; you supply the role it federates
+  # into as OPS_AWS_FEDERATION_ROLE_ARN in openopsEnv.
+  # Leave disabled on EKS: IRSA injects its own token and the AWS SDK finds it.
+  awsWebIdentity:
+    enabled: false
+    audience: sts.amazonaws.com
+    expirationSeconds: 3600
+    mountPath: /var/run/secrets/aws
   # Prometheus metrics
   metrics:
     enabled: true
