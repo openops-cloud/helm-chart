@@ -1,6 +1,6 @@
 # OpenOps Helm Chart
 
-This repository contains the Helm chart that deploys the OpenOps application stack (nginx, app server, engine, tables, analytics, Postgres, Redis) onto a Kubernetes cluster.
+This repository contains the Helm chart that deploys the OpenOps application stack (nginx, app server, worker, tables, analytics, Postgres, Redis) onto a Kubernetes cluster.
 
 ## Repository layout
 - `chart/Chart.yaml`: Chart metadata for the `openops` release.
@@ -9,7 +9,8 @@ This repository contains the Helm chart that deploys the OpenOps application sta
 - `chart/values.ci.yaml`: Resource-constrained overlay for CI environments.
 - `chart/values.dev.yaml`: Development overlay for local development environments.
 - `chart/values.production.yaml`: Production overlay with externalized dependencies and cloud settings.
-- `chart/templates/`: Kubernetes manifests templated by Helm (43 files including deployments, statefulsets, services, configmaps, secrets, external secrets, PVCs, ingress, service accounts, PodDisruptionBudgets, HorizontalPodAutoscalers, NetworkPolicy, LimitRange, ServiceMonitor, Helm tests, and helpers).
+- `chart/values.mcp-example.yaml`: Overlay enabling the MCP server for external agents; rendered in CI.
+- `chart/templates/`: Kubernetes manifests templated by Helm (48 files including deployments, statefulsets, services, configmaps, secrets, external secrets, PVCs, ingress, service accounts, PodDisruptionBudgets, HorizontalPodAutoscalers, NetworkPolicy, LimitRange, ServiceMonitor, Helm tests, and helpers).
 - `chart/.helmignore`: Excludes development and repository files from packaged charts.
 - `LICENSE`: Apache 2.0 license for this Helm chart.
 - `docs/`: Deployment guides for AWS EKS, EKS Fargate, and other platforms.
@@ -17,7 +18,8 @@ This repository contains the Helm chart that deploys the OpenOps application sta
 ## Components
 - **nginx**: Reverse proxy and load balancer exposed via `LoadBalancer`.
 - **openops-app**: Main application server.
-- **openops-engine**: Task execution engine.
+- **openops-worker**: Workflow execution worker.
+- **openops-mcp** (opt-in): MCP server that lets external agents such as Claude Code or Codex operate OpenOps over OAuth.
 - **openops-tables**: Data tables service (Baserow).
 - **openops-analytics**: Analytics dashboard (Superset).
 - **postgres**: PostgreSQL database.
@@ -28,7 +30,7 @@ This repository contains the Helm chart that deploys the OpenOps application sta
 ### Install from OCI registry (recommended)
 
 ```bash
-helm install openops oci://public.ecr.aws/openops/helm/openops \
+helm install openops oci://openops.azurecr.io/helm/openops \
   --version <VERSION> \
   -n openops --create-namespace \
   -f values.overrides.yaml
@@ -111,11 +113,15 @@ The chart includes several example overlay files to help you get started:
 
 **`values.production.yaml`** - Production-ready overlay
 - Demonstrates externalized PostgreSQL and Redis (AWS RDS, ElastiCache, etc.)
-- Increased replica counts for high availability (app: 3, engine: 3, nginx: 2)
+- Increased replica counts for high availability (app: 3, worker: 3, nginx: 2)
 - Production-grade resource allocations (2-4Gi memory per service)
 - Cloud-specific storage classes (gp3, premium-rwo, managed-csi)
 - LoadBalancer annotations for AWS/GCP/Azure
 - Security hardening examples
+
+**`values.mcp-example.yaml`** - MCP server enabled
+- Shows the minimum to turn on the MCP server: `mcp.enabled`, an https `global.publicUrl`, and `OPS_OAUTH_RS_CLIENT_SECRET`
+- Rendered by the validation workflow so the opt-in path stays green
 
 ### Creating custom overlays
 
@@ -312,40 +318,55 @@ kubectl create secret tls openops-tls \
   -n openops
 ```
 
+## MCP server for external agents
+
+External agents such as Claude Code or Codex connect to OpenOps through the `openops-mcp` service, which is disabled by default. When enabled it sits behind nginx at `<publicUrl>/mcp` and authenticates agents with OAuth issued by the OpenOps API. The chart derives the API-side settings (`OPS_OAUTH_ENABLED`, `OPS_OAUTH_ISSUER_URL`, `OPS_MCP_RESOURCE_URL`) from `mcp.enabled` and `global.publicUrl`, so the two sides cannot drift.
+
+Prerequisites:
+- `global.publicUrl` must be `https://...` (plain `http` is only accepted for `localhost`), so enable TLS first.
+- `OPS_OAUTH_RS_CLIENT_SECRET` must be declared under `openopsEnvSecrets` with a random value of at least 32 characters (`openssl rand -hex 32`). It is shared between the API and the MCP pod. When an external secret manager supplies the value, declare the key as `""`; with `externalSecrets.infraSecretName` set, the chart reads it from the infra secret (the Terraform-generated one on Azure), otherwise from the single remote secret. External Secrets fails the whole sync when a requested property is missing, which is why the chart does not declare this key by default.
+- The MCP image is pulled from the public registry (`openops.azurecr.io/openops-mcp`, pinned by `mcp.tag`), like Tables and Analytics; no pull credentials are needed. Point `mcp.repository`/`mcp.tag` elsewhere to run a different build.
+
+Minimal override:
+```yaml
+global:
+  publicUrl: "https://example.openops.com"
+
+openopsEnvSecrets:
+  OPS_OAUTH_RS_CLIENT_SECRET: "<openssl rand -hex 32>"
+
+mcp:
+  enabled: true
+  tag: "<release version or commit sha>"
+```
+
+The MCP pod is stateless and receives only its own environment (`mcp.env`), never the shared `openopsEnv`/`openopsEnvSecrets` layers. It has no health endpoint, so probes use the unauthenticated OAuth metadata route `/.well-known/oauth-protected-resource/mcp`. With `networkPolicy.enabled`, only nginx may reach it and it may only reach the app, DNS, and port 443.
+
+Connect an agent:
+```bash
+claude mcp add --transport http openops https://example.openops.com/mcp
+```
+The first tool call opens a browser to approve the connection under Settings -> Connected apps.
+
 ## Dependencies
 The deployments include health checks and readiness probes so dependent services wait until their prerequisites are available.
 
-## Private ECR access from non-AWS clusters
+## Pulling from a private registry
 
-When deploying on AKS or other non-AWS Kubernetes clusters that need to pull images from a private ECR registry, enable the ECR credential refresh CronJob:
+Release images need no credentials. `openops.azurecr.io` allows anonymous pull, so a default
+install authenticates to nothing.
+
+If you mirror the images into a registry of your own, create a pull secret by whatever means
+that registry expects and reference it:
 
 ```yaml
 global:
   imagePullSecrets:
-    - ecr-pull-secret
+    - my-registry-credentials
 
-ecrCredentialRefresh:
-  enabled: true
-  registry: "<registry>"
-  awsRegion: "us-east-2"
-  awsSecretName: "ecr-credentials"       # K8s secret with AWS access keys
-  imagePullSecretName: "ecr-pull-secret"  # Created/refreshed automatically
+image:
+  repository: my-registry.example.com/openops
 ```
-
-**Pre-requisite:** Create the AWS credentials secret (one-time):
-```bash
-kubectl create secret generic ecr-credentials \
-  -n openops \
-  --from-literal=AWS_ACCESS_KEY_ID=<YOUR_ECR_ACCESS_KEY_ID> \
-  --from-literal=AWS_SECRET_ACCESS_KEY=<YOUR_ECR_SECRET_ACCESS_KEY>
-```
-
-The IAM user needs only `ecr:GetAuthorizationToken`, `ecr:BatchGetImage`, and `ecr:GetDownloadUrlForLayer` permissions.
-
-**How it works:**
-- A Helm post-install/post-upgrade hook creates the pull secret immediately on deploy
-- A CronJob refreshes the ECR token every 6 hours (tokens expire after 12h)
-- All deployments reference the pull secret via `global.imagePullSecrets`
 
 ## Analytics (Superset) configuration override
 
@@ -461,7 +482,7 @@ app:
       memory: "4Gi"
       cpu: "2000m"
 
-engine:
+worker:
   replicas: 3
 
 tables:
@@ -475,7 +496,7 @@ nginx:
 ```
 
 **Important scaling considerations:**
-- **app** and **engine** are stateless and can be scaled horizontally without restrictions.
+- **app** and **worker** are stateless and can be scaled horizontally without restrictions.
 - **tables** uses file-based storage (SQLite for media) and requires `ReadWriteOnce` PVC; limit to 2-3 replicas or migrate to object storage.
 - **analytics** can be scaled but shares session state; consider sticky sessions or external session storage for >2 replicas.
 - **postgres** and **redis** bundled deployments are single-replica; use external managed services for HA.
@@ -496,14 +517,14 @@ app:
 
 **Resource tuning guidelines:**
 - **app**: Memory-intensive for large workflows; start with 1-2Gi, scale to 4Gi+ under load.
-- **engine**: CPU-intensive for code execution; allocate 500m-1000m CPU per replica.
+- **worker**: CPU-intensive for code execution; allocate 500m-1000m CPU per replica.
 - **tables**: Initial migrations require 1-2Gi memory; steady-state can run on 512Mi-1Gi.
 - **analytics**: Dashboard rendering is memory-heavy; allocate 2Gi+ for production.
 - **postgres**: Size based on dataset; 512Mi-1Gi for dev, 2Gi+ for production.
 - **redis**: Typically light; 256Mi-512Mi sufficient for most workloads.
 
 ### Autoscaling
-The chart includes optional HorizontalPodAutoscaler (HPA) resources for app, engine, analytics, and nginx. Enable them in your values:
+The chart includes optional HorizontalPodAutoscaler (HPA) resources for app, worker, analytics, and nginx. Enable them in your values:
 
 ```yaml
 hpa:
@@ -514,7 +535,7 @@ hpa:
     maxReplicas: 10
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 80
-  engine:
+  worker:
     enabled: true
     minReplicas: 2
     maxReplicas: 8
@@ -664,7 +685,7 @@ networkPolicy:
 
 The default policy enforces:
 - Nginx accepts traffic from LoadBalancer/Ingress and routes to app/analytics/tables
-- App, engine, and analytics can access Postgres and Redis
+- App, worker, and analytics can access Postgres and Redis
 - All components can query DNS and access external HTTPS endpoints
 - Postgres and Redis only accept connections from authorized components
 - All other traffic is denied by default (zero-trust networking)
@@ -738,10 +759,10 @@ serviceAccount:
     create: true
     annotations:
       eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT:role/openops-app"
-  engine:
+  worker:
     create: true
     annotations:
-      eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT:role/openops-engine"
+      eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT:role/openops-worker"
   # For GCP Workload Identity
   analytics:
     create: true
@@ -807,7 +828,7 @@ app:
       memory: "2Gi"
       cpu: "1000m"
 
-engine:
+worker:
   replicas: 3
 
 tables:
@@ -834,7 +855,7 @@ app:
   podDisruptionBudget:
     enabled: true
     maxUnavailable: 1
-engine:
+worker:
   podDisruptionBudget:
     enabled: true
     maxUnavailable: 1
@@ -892,7 +913,7 @@ serviceMonitor:
 
 The ServiceMonitor automatically discovers and scrapes metrics from:
 - `openops-app` on `/metrics`
-- `openops-engine` on `/metrics`
+- `openops-worker` on `/metrics`
 - `openops-analytics` on `/metrics`
 - `postgres` on `:9187/metrics` (if postgres-exporter sidecar is enabled)
 - `redis` on `:9121/metrics` (if redis-exporter sidecar is enabled)

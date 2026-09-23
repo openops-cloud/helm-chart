@@ -1,0 +1,82 @@
+{{- if .Values.mcp.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.mcp.name }}
+  labels:
+    {{- include "openops.componentLabels" (dict "root" . "component" "mcp") | nindent 4 }}
+    {{- with .Values.global.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.global.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.mcp.autoscaling.enabled }}
+  replicas: {{ .Values.mcp.replicas }}
+  {{- end }}
+  {{- include "openops.deploymentStrategy" . | nindent 2 }}
+  selector:
+    matchLabels:
+      {{- include "openops.componentSelectorLabels" (dict "root" . "component" "mcp") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "openops.componentSelectorLabels" (dict "root" . "component" "mcp") | nindent 8 }}
+        {{- with .Values.global.commonLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- include "openops.prometheusAnnotations" (dict "root" . "component" "mcp") | nindent 8 }}
+        {{- with include "openops.secretChecksum" . }}
+        checksum/secret-env: {{ . }}
+        {{- end }}
+        {{- with .Values.global.commonAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "openops.serviceAccountName" (dict "root" . "component" "mcp") }}
+      {{- include "openops.imagePullSecrets" . | nindent 6 }}
+      {{- include "openops.podSecurityContext" (dict "root" . "component" "mcp") | nindent 6 }}
+      {{- include "openops.priorityClassName" . | nindent 6 }}
+      {{- include "openops.terminationGracePeriodSeconds" . | nindent 6 }}
+      {{- include "openops.topologySpreadConstraints" (dict "root" . "component" "mcp") | nindent 6 }}
+      {{- include "openops.affinity" (dict "root" . "component" "mcp") | nindent 6 }}
+      {{- include "openops.nodeSelector" . | nindent 6 }}
+      {{- include "openops.tolerations" . | nindent 6 }}
+      {{- include "openops.initContainers" (dict "root" . "component" "mcp") | nindent 6 }}
+      containers:
+        - name: {{ .Values.mcp.name }}
+          image: "{{ include "openops.imageRepository" (dict "root" . "component" "mcp") }}/{{ .Values.mcp.image }}:{{ .Values.mcp.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- include "openops.containerSecurityContext" (dict "root" .) | nindent 10 }}
+          # Only the MCP-specific env is rendered here. The shared openopsEnv/openopsEnvSecrets
+          # layers carry database and admin credentials this pod must never receive.
+          env:
+            {{- include "openops.renderEnv" (dict "root" . "env" .Values.mcp.env) | trim | nindent 12 }}
+          ports:
+            - containerPort: {{ .Values.mcp.port }}
+              name: http
+{{- with .Values.mcp.resources }}
+          resources:
+{{ toYaml . | nindent 12 }}
+{{- end }}
+          # The server exposes no health route. The OAuth protected-resource metadata answers
+          # 200 without a token, and the process only listens once its startup fetch of the
+          # OpenAPI document from the API has succeeded, so this doubles as a readiness signal.
+          {{- include "openops.startupProbe" (dict "path" "/.well-known/oauth-protected-resource/mcp" "port" .Values.mcp.port) | nindent 10 }}
+          readinessProbe:
+            httpGet:
+              path: /.well-known/oauth-protected-resource/mcp
+              port: {{ .Values.mcp.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /.well-known/oauth-protected-resource/mcp
+              port: {{ .Values.mcp.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          {{- include "openops.lifecyclePreStop" . | nindent 10 }}
+{{- end }}

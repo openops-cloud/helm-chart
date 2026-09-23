@@ -7,7 +7,8 @@
 - `/chart/values.ci.yaml`: Resource-constrained overlay for CI environments.
 - `/chart/values.dev.yaml`: Development overlay for local development environments.
 - `/chart/values.production.yaml`: Production overlay with externalized dependencies and cloud settings.
-- `/chart/templates/`: Kubernetes manifests rendered by Helm (43 files). Includes deployments/statefulsets, services, configmaps (`configmap-*.yaml`), secrets (`secret-env.yaml`, `external-secret.yaml`), service accounts, PodDisruptionBudgets, HorizontalPodAutoscalers, NetworkPolicy, LimitRange, ServiceMonitor for Prometheus, and Helm tests. Shared template helpers live in `_helpers.tpl` (561 lines with 49+ helper functions). Postgres and Redis use StatefulSets with volumeClaimTemplates for stable storage and safe rollouts.
+- `/chart/values.mcp-example.yaml`: Overlay enabling the opt-in MCP server for external agents; rendered by `helm-validate.yaml` so the enabled path stays valid.
+- `/chart/templates/`: Kubernetes manifests rendered by Helm (48 files). Includes deployments/statefulsets, services, configmaps (`configmap-*.yaml`), secrets (`secret-env.yaml`, `external-secret.yaml`), service accounts, PodDisruptionBudgets, HorizontalPodAutoscalers, NetworkPolicy, LimitRange, ServiceMonitor for Prometheus, and Helm tests. Shared template helpers live in `_helpers.tpl` (561 lines with 49+ helper functions). Postgres and Redis use StatefulSets with volumeClaimTemplates for stable storage and safe rollouts.
 - `/chart/templates/NOTES.txt`: Helm installation notes displayed after deployment with important warnings and next steps.
 - `/chart/.helmignore`: Excludes development and repository files from packaged charts to reduce size and prevent leaking unnecessary files.
 - `/LICENSE`: Apache 2.0 license for this Helm chart repository.
@@ -24,32 +25,33 @@
 
 ## Production features
 - **Security-first design**: Security contexts enabled by default (runAsNonRoot, drop ALL capabilities, seccomp RuntimeDefault profile).
-- **Service accounts**: Dedicated service accounts for each component (app, engine, tables, analytics, nginx, postgres, redis) with configurable annotations for AWS IAM roles (IRSA), GCP Workload Identity, or Azure Managed Identity.
+- **Service accounts**: Dedicated service accounts for each component (app, worker, mcp, tables, analytics, nginx, postgres, redis) with configurable annotations for AWS IAM roles (IRSA), GCP Workload Identity, or Azure Managed Identity.
 - **External Secrets Operator**: Built-in support for AWS Secrets Manager, HashiCorp Vault, GCP Secret Manager, and Azure Key Vault integration.
-- **PodDisruptionBudgets (PDBs)**: Configured for `app`, `engine`, `nginx`, `analytics` and `tables` — note that `tables` is stateful (PVC, ReadWriteOnce), while the Postgres and Redis StatefulSets have no PDB. All default to `maxUnavailable: 1` so voluntary disruptions (node drains, upgrades) can always proceed. Each component also accepts `minAvailable` when `maxUnavailable` is unset, but avoid it where a component runs a single replica: `minAvailable: 1` then evaluates to `disruptionsAllowed: 0` and blocks every drain. `analytics` and `tables` default to one replica.
-- **HorizontalPodAutoscalers (HPAs)**: Optional autoscaling for app, engine, analytics, and nginx based on CPU/memory metrics.
+- **PodDisruptionBudgets (PDBs)**: Configured for `app`, `worker`, `mcp`, `nginx`, `analytics` and `tables` — note that `tables` is stateful (PVC, ReadWriteOnce), while the Postgres and Redis StatefulSets have no PDB. All default to `maxUnavailable: 1` so voluntary disruptions (node drains, upgrades) can always proceed. Each component also accepts `minAvailable` when `maxUnavailable` is unset, but avoid it where a component runs a single replica: `minAvailable: 1` then evaluates to `disruptionsAllowed: 0` and blocks every drain. `analytics` and `tables` default to one replica.
+- **HorizontalPodAutoscalers (HPAs)**: Optional autoscaling for app, worker, mcp, analytics, and nginx based on CPU/memory metrics.
 - **NetworkPolicy**: Optional network segmentation to restrict pod-to-pod communication and enforce least-privilege networking with explicit allow rules.
 - **LimitRange**: Optional namespace-level resource defaults and constraints to prevent resource exhaustion.
 - **ServiceMonitor**: Prometheus Operator integration for scraping application metrics from `/metrics` endpoints.
 - **Helm tests**: Post-installation connectivity tests to validate deployment health.
+- **MCP server (opt-in)**: `mcp.enabled` deploys `openops-mcp` behind nginx at `/mcp` and derives the API's OAuth env from `global.publicUrl`. The MCP pod renders only `mcp.env`. `OPS_OAUTH_RS_CLIENT_SECRET` is deliberately not a default `openopsEnvSecrets` key: External Secrets fails the whole sync on a missing property, so the key, `mcp.env` secret collection, nginx routes and NetworkPolicy are all gated on `mcp.enabled`, and `openops.validateMcp` fails the render if the key is undeclared, too short, or `global.publicUrl` is not https.
 - **Validation helpers**: Runtime validation of required secrets (OPS_ENCRYPTION_KEY, OPS_JWT_SECRET, etc.) with helpful error messages at render time.
 
 ## Release workflow
-- **`.github/workflows/release.yml`**: Packages the Helm chart and pushes it as an OCI artifact to `public.ecr.aws/openops/helm/openops`.
+- **`.github/workflows/release.yml`**: Packages the Helm chart and pushes it as an OCI artifact to `openops.azurecr.io/helm/openops`.
 - Triggered via `workflow_dispatch` with two inputs:
   - `version` (required): The release version (e.g., `0.6.15`). Sets both `Chart.yaml` version/appVersion and `global.version` (image tags).
-  - `draft` (boolean, default `true`): When true, appends `-draft` to the chart version (e.g., `0.6.15-draft`). Draft versions are overwritable on ECR; final versions are immutable.
+  - `draft` (boolean, default `true`): When true, appends `-draft` to the chart version (e.g., `0.6.15-draft`). The suffix is a naming convention only - ACR does not enforce tag immutability unless it is configured on the registry, so a final version can be overwritten by a later push of the same version.
 - Also triggered cross-repo by `openops-cloud/openops` release workflow.
 - Creates a GitHub release (draft or published) with the packaged `.tgz` as an asset.
 - **Do not bump versions in `Chart.yaml` or `values.yaml` manually**—the release workflow sets them at build time. The repo defaults are `version: 0.0.1-dev` and `appVersion: 0.0.1-dev`.
-- Required secrets: `ECR_ACCESS_KEY_ID`, `ECR_SECRET_ACCESS_KEY`; required vars: `ECR_PUBLIC_REGION`.
+- Authenticates with GitHub OIDC. Required secrets: `AZURE_ACR_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`; required vars: `ACR_PUBLIC_NAME`, `ACR_PUBLIC_LOGIN_SERVER`.
 
 ## Versioning strategy
 - All *release* versions are unified: chart version = appVersion = `global.version` (image tags) = OpenOps release version. The in-repo development defaults (`0.0.1-dev`) are normalized by the release workflow.
 - Exception: draft releases use `{version}-draft` for the chart version only; `appVersion` and image tags use the clean version.
-- The chart is published to `oci://public.ecr.aws/openops/helm/openops`. Users install with:
+- The chart is published to `oci://openops.azurecr.io/helm/openops`. Users install with:
   ```
-  helm install openops oci://public.ecr.aws/openops/helm/openops --version <VERSION>
+  helm install openops oci://openops.azurecr.io/helm/openops --version <VERSION>
   ```
 
 ## PR lint rules

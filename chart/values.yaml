@@ -81,7 +81,7 @@ global:
   priorityClassName: ""
 
 image:
-  repository: public.ecr.aws/openops
+  repository: openops.azurecr.io
   pullPolicy: IfNotPresent
 
 openopsEnv:
@@ -106,9 +106,15 @@ openopsEnv:
   OPS_TELEMETRY_MODE: COLLECTOR
   OPS_TELEMETRY_COLLECTOR_URL: https://telemetry.openops.com/save
 
-  # Engine
-  OPS_ENGINE_URL: '{{ include "openops.engineServiceUrl" . }}/execute'
+  # Worker
+  OPS_WORKER_URL: '{{ include "openops.workerServiceUrl" . }}'
   OPS_EXECUTION_MODE: SANDBOX_CODE_ONLY
+
+  # OAuth for external agents (MCP). Derived from mcp.enabled and global.publicUrl so the API
+  # and the MCP pod always agree on issuer and resource. See the "mcp" section below.
+  OPS_OAUTH_ENABLED: '{{ .Values.mcp.enabled }}'
+  OPS_OAUTH_ISSUER_URL: '{{ include "openops.publicUrl" . }}/api'
+  OPS_MCP_RESOURCE_URL: '{{ include "openops.publicUrl" . }}/mcp'
 
   # Queue
   OPS_QUEUE_MODE: REDIS
@@ -149,7 +155,7 @@ openopsEnv:
   OPS_SUBAGENT_S3_BUCKET: ""
   OPS_SUBAGENT_S3_REGION: ""
   OPS_SUBAGENT_S3_ENDPOINT: ""
-  OPS_SUBAGENT_RUNNER_IMAGE: "535002847982.dkr.ecr.us-east-2.amazonaws.com/openops/subagent-runner:0fdbc6b1"
+  OPS_SUBAGENT_RUNNER_IMAGE: ""
 
 # Secret environment variables
 # Any var in this section is treated as a secret (stored in K8s Secret, referenced via secretKeyRef).
@@ -167,6 +173,10 @@ openopsEnvSecrets:
   OPS_LANGFUSE_PUBLIC_KEY: ""
   OPS_LANGFUSE_SECRET_KEY: ""
   OPS_SSO_FRONTEGG_PUBLIC_KEY: ""
+  # When mcp.enabled is true, declare OPS_OAUTH_RS_CLIENT_SECRET here (openssl rand -hex 32).
+  # It is intentionally not a default: External Secrets fails the whole sync when a requested
+  # property is missing, so adding it unconditionally would break installs that keep MCP off.
+  # OPS_OAUTH_RS_CLIENT_SECRET: ""
 
 secretEnv:
   create: true
@@ -214,9 +224,9 @@ app:
     port: 8080
     path: /metrics
 
-engine:
-  name: openops-engine
-  image: openops-engine
+worker:
+  name: openops-worker
+  image: openops-worker
   repository: ""  # Override global image.repository (empty = use global)
   replicas: 2  # Minimum 2 for high availability
   resources:
@@ -244,6 +254,16 @@ engine:
     create: true
     name: ""
     annotations: {}
+  # Exchange a projected service account token for AWS credentials, the way IRSA
+  # does on EKS. Enabling this projects the token and sets
+  # OPS_AWS_WEB_IDENTITY_TOKEN_FILE to match; you supply the role it federates
+  # into as OPS_AWS_FEDERATION_ROLE_ARN in openopsEnv.
+  # Leave disabled on EKS: IRSA injects its own token and the AWS SDK finds it.
+  awsWebIdentity:
+    enabled: false
+    audience: sts.amazonaws.com
+    expirationSeconds: 3600
+    mountPath: /var/run/secrets/aws
   # Prometheus metrics
   metrics:
     enabled: true
@@ -253,11 +273,64 @@ engine:
     OPS_BASE_CODE_DIRECTORY: /tmp/codes
     OPS_SERVER_API_URL: '{{ printf "%s/api/" (include "openops.appServiceUrl" .) }}'
 
+# MCP server for external agents (Claude Code, Codex, ...). Opt-in: serves <publicUrl>/mcp
+# through nginx and authenticates agents with OAuth issued by the OpenOps API. Enabling it
+# requires an https global.publicUrl (or localhost) and OPS_OAUTH_RS_CLIENT_SECRET in
+# openopsEnvSecrets (at least 32 characters, shared with the API).
+mcp:
+  enabled: false
+  name: openops-mcp
+  image: openops-mcp
+  repository: "openops.azurecr.io"  # Always the public registry for mcp
+  tag: "0.2.1"  # Independently versioned (openops-mcp release), not global.version
+  port: 3020
+  replicas: 2  # Stateless; any replica serves any request
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  # Pod Disruption Budget - ENABLED BY DEFAULT
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 1
+  # Horizontal Pod Autoscaler
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  # Init containers (optional)
+  initContainers: []
+  # Service Account
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  # No "metrics" map: the server exposes no /metrics endpoint. Add one (enabled/port/path)
+  # and a ServiceMonitor block once it does; the Prometheus annotations helper skips
+  # components without it.
+  # Only these variables reach the MCP pod; openopsEnv/openopsEnvSecrets are not injected.
+  # Values referencing .Values.openopsEnvSecrets.* are sourced from the shared Secret.
+  env:
+    MCP_HTTP_PORT: '{{ .Values.mcp.port }}'
+    OPENOPS_API_URL: '{{ include "openops.appServiceUrl" . }}/api'
+    OPENOPS_MCP_PROFILE: agent
+    OPENOPS_MCP_ISSUER: '{{ .Values.openopsEnv.OPS_OAUTH_ISSUER_URL }}'
+    OPENOPS_MCP_RESOURCE_URL: '{{ .Values.openopsEnv.OPS_MCP_RESOURCE_URL }}'
+    OPENOPS_MCP_CLIENT_SECRET: '{{ .Values.openopsEnvSecrets.OPS_OAUTH_RS_CLIENT_SECRET }}'
+    LOG_LEVEL: '{{ .Values.openopsEnv.OPS_LOG_LEVEL }}'
+    ENVIRONMENT: '{{ .Values.openopsEnv.OPS_ENVIRONMENT_NAME }}'
+    LOGZIO_TOKEN: '{{ .Values.openopsEnvSecrets.OPS_LOGZIO_TOKEN }}'
+
 tables:
   name: openops-tables
   image: openops-tables
-  repository: "public.ecr.aws/openops"  # Always use public ECR for tables
-  tag: "0.2.21"
+  repository: "openops.azurecr.io"  # Always the public registry for tables
+  tag: "0.2.22"
   replicas: 1
   resources:
     requests:
@@ -319,8 +392,8 @@ tables:
 analytics:
   name: openops-analytics
   image: openops-analytics
-  repository: "public.ecr.aws/openops"  # Always use public ECR for analytics
-  tag: "0.14.7"
+  repository: "openops.azurecr.io"  # Always the public registry for analytics
+  tag: "0.14.8"
   replicas: 1
   resources:
     requests:
@@ -598,7 +671,7 @@ ingress:
     - paths:
         - path: /
           pathType: Prefix
-          # serviceName must match a service defined in this chart (nginx, app, engine, tables, analytics)
+          # serviceName must match a service defined in this chart (nginx, app, worker, tables, analytics)
           serviceName: nginx
           servicePort: 80
   # TLS-related settings below apply only to nginx ingress controller
@@ -654,23 +727,6 @@ externalSecrets:
     annotations: {}
     labels: {}
 
-# ECR credential refresh CronJob (for pulling from private ECR outside AWS)
-# Creates and refreshes an imagePullSecret every 6 hours using AWS ECR token.
-# Required when AKS or non-AWS clusters need to pull from private ECR.
-ecrCredentialRefresh:
-  enabled: false
-  registry: ""
-  # AWS region of the ECR registry
-  awsRegion: "us-east-2"
-  # Name of the Kubernetes secret containing AWS credentials (keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
-  awsSecretName: "ecr-credentials"
-  # Name of the imagePullSecret that will be created/refreshed
-  imagePullSecretName: "ecr-pull-secret"
-  serviceAccount:
-    name: "ecr-credential-refresh"
-    annotations: {}
-
-# Subagent configuration
 subagents:
   # Namespace where subagent pods run (defaults to same namespace as app)
   namespace: ""
