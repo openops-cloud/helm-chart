@@ -437,7 +437,7 @@ analytics:
     DATABASE_PASSWORD: "{{ .Values.openopsEnvSecrets.OPS_POSTGRES_PASSWORD }}"
     DATABASE_HOST_ALT: "{{ .Values.openopsEnv.OPS_OPENOPS_TABLES_DB_HOST }}"
     SUPERSET_SECRET_KEY: "{{ .Values.openopsEnvSecrets.SUPERSET_SECRET_KEY }}"
-    SUPERSET_FEATURE_ALLOW_ADHOC_SUBQUERY: '"{{ .Values.openopsEnv.ANALYTICS_ALLOW_ADHOC_SUBQUERY }}"'
+    SUPERSET_FEATURE_ALLOW_ADHOC_SUBQUERY: '{{ .Values.openopsEnv.ANALYTICS_ALLOW_ADHOC_SUBQUERY }}'
     REDIS_HOST: '{{ include "openops.redisUrlExtractHost" . }}'
     REDIS_PORT: '{{ include "openops.redisUrlExtractPort" . }}'
     REDIS_USERNAME: ''
